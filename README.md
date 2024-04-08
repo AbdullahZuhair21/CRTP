@@ -851,7 +851,7 @@ So basically, we need full access to the Startup folder. Then by dropping our ma
 
 ### Windows VM
 
-1. Open command prompt and type: 
+1. Open the command prompt and type the following to check the permission. Path is static: 
 ```console
 C:\Temp> icacls.exe "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
 ```
