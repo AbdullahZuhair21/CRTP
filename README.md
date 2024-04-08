@@ -456,7 +456,22 @@ Get-DomainForeignGroupMember
 ---
 
 # Active Directory - Local Privilege Escalation
-
+> 1. [ ] Autorun
+> 2. [ ] AlwaysInstallElevated
+> 3. [ ] Service Registry
+> 4. [ ] Executable Files
+> 5. [ ] Startup Applications
+> 6. [ ] DLL Hijacking
+> 7. [ ] BinPath
+> 8. [ ] Unquoted Service Paths
+> 9. [ ] Juicy potato attack
+> 10. [ ] Hot Potato attack
+> 11. [ ] Kernel Exploits
+> 12. [ ] Password Mining Escalation - Firefox
+> 13. [ ] Runas-Savdcreds
+> 14. [ ] Backup Operators (Disk shadow + Robocopy)
+> 15. [ ] Abusing GPO permissions
+> 16. [ ] Export LAPS Passwords
 Windows Enumeration:
 - system enum
 ```
