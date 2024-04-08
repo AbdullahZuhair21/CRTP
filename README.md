@@ -554,6 +554,9 @@ C:\Temp> Autoruns64.exe
 3. From the listed results, notice that the `"My Program"` entry is pointing to `"C:\Program Files\Autorun Program\program.exe"`.
 4. Go back to the command prompt run [AccessChk64.exe]([https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk](https://learn.microsoft.com/en-us/sysinternals/downloads/accesschk))
 
+5. Another way to identify autorun programs using cmd
+-     req query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+
 ```console
 C:\Temp> accesschk64.exe -wvu "C:\Program Files\Autorun Program"
 
