@@ -705,7 +705,24 @@ A service registry consists of a cluster of servers that use a replication proto
 
 ## <span style="color:lightgreen">Detection</span>
 
-### Windows VM
+### Using winPEAS
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/61c219fe-678e-48bd-91ae-aff0e82c866e)
+
+winPEAS tells us regsvc service can be modified
+
+1. use accesschk to confirm if you can modify the service
+```
+accesschk.exe /accepteula -kwv HKLM\system\currentcontrolset\services\regsvc
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/22536b55-2113-4686-a183-9e7f2801296a)
+
+2. make sure that you can stop & start the service
+```
+accesschk.exe /accepteula -cv regsvc
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/de27514b-e6c1-4174-8ef2-7ffeac8ab9f6)
+
+### Manual Detection
 
 1. Open powershell prompt and type: 
 ```powershell
