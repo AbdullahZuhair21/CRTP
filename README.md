@@ -1128,6 +1128,24 @@ PS C:\Temp> Invoke-AllChecks
 
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/54c3e5a4-cc2c-4627-bb7e-fb1b5540a042)
 
+2. use accesschk tool to check if you can stop & start the service
+```
+accesschk.exe /accepteula -ucqv unquotedsvc
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d0f86e09-5009-4cd6-bfb2-4621c844353d)
+
+3. check each folder before the service path starting from the root if you have read or write permission
+```
+accesschk.exe /accepteula -uwdq FolderPath
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/457a182b-312e-4fe1-97f7-4345eff8b0f6)
+
+as you can see you don't have read or write permission in C folder. check the next folder
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/db03daaa-2404-4818-808b-2021f8b08411)
+
+in Unquoted Path Service folder we have read & write permission so you can put your payload here. your payload name should be exactly the same name of the next folder
+
+for example your path is `"C:\Program Files\Unquoted Path Service\Common Files\unquotedpathservice.exe"` and you have read & write permission in `"Unquoted Path Service"` folder your payload should be Common.exe
 
 ##  <span style="color:lightgreen">Exploitation</span>
 ### Kali VM
