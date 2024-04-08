@@ -1141,9 +1141,10 @@ accesschk.exe /accepteula -uwdq FolderPath
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/457a182b-312e-4fe1-97f7-4345eff8b0f6)
 
 as you can see you don't have read or write permission in C folder. check the next folder
+
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/db03daaa-2404-4818-808b-2021f8b08411)
 
-in Unquoted Path Service folder we have read & write permission so you can put your payload here. your payload name should be exactly the same name of the next folder
+in `"Unquoted Path Service"` folder we have read & write permission so you can put your payload here. your payload name should be exactly the same name of the next folder
 
 for example your path is `"C:\Program Files\Unquoted Path Service\Common Files\unquotedpathservice.exe"` and you have read & write permission in `"Unquoted Path Service"` folder your payload should be Common.exe
 
