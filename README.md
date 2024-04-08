@@ -545,7 +545,9 @@ C:\Temp> Autoruns64.exe
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/91e45f42-3bf4-4503-a88d-b5ec77207f3b)
 2. In Autoruns, click on the `"Logon"` tab.
+
 3. From the listed results, notice that the `"My Program"` entry is pointing to `"C:\Program Files\Autorun Program\program.exe"`.
+   
 4. Go back to the command prompt run [AccessChk64.exe]([https://docs.microsoft.com/en-us/sysinternals/downloads/accesschk](https://learn.microsoft.com/en-us/sysinternals/downloads/accesschk))
 ```console
 C:\Temp> accesschk64.exe -wvu "C:\Program Files\Autorun Program"
@@ -555,16 +557,20 @@ C:\Temp> accesschk64.exe -wvu "C:\Program Files\Autorun Program"
 # v --> verbose; dispaly as many details as possible
 # u --> ignore the errors
 ```
-![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2e31e838-22b0-4aa4-be5f-02dd129b0630)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2e31e838-22b0-4aa4-be5f-02dd129b0630) in Everyone we have `"FILE_ALL_ACCESS"`
 
 ### Using cmd
--     req query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
-
+```
+req query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+```
 ### Using winPEAS (recommended)
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/1f67ed07-25c9-49c1-9572-941443e2fa2c)
-From the output, notice that the `"Everyone"` user group has `"AllAccess"` permission on the `"program.exe"` file. To gain administrator access, we can drop our malicious executable file by overwriting on the file.
+
+From the output, notice that the `"Everyone"` user group has `"AllAccess"` permission on the `"program.exe"` file. To gain administrator access, we can drop our malicious executable file by overwriting the file.
 1. confirm the AllAccess privilege that we got form winPEAS by running accesschk.exe
--     accesschk.exe /accepteula -wvu <user> "C:\Program Files\Autorun Program\program.exe"
+```
+accesschk.exe /accepteula -wvu <user> "C:\Program Files\Autorun Program\program.exe"
+```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/b9c86c44-bf07-4604-b798-38a5c5ae5d00)
 
 
