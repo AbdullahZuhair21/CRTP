@@ -1731,6 +1731,11 @@ Invoke-BloodHound -Stealth
 SharpHound.exe --stealth
 ```
 
+# Runas
+if you found AD credentials but nowhere to log in with them. Runas allows a user to run a specific program with a different account
+```
+runas.exe /netonly /user:<domain>\<username> cmd.exe
+```
 
 # Lateral Movement - PowerShell Remoting
 Avoid using psexec as it is too noisy. instead, use `"Enter-PSSession"` need Admin Privs
