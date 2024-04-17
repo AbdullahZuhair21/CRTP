@@ -2070,13 +2070,17 @@ OR
 john.exe --wordlist=C"\AD\Tools\kerberoast\10k-worst-pass.txt C:\AD\Tools\hashes.txt
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/1ecb64fc-cdae-4d36-9bb3-b9738a1e0777)
+
 5. Luanch a new PowerShell session using svcadmin username and his password
+
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/b15b7264-7304-4c97-87a0-8d3c3ae6175a)
 
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c067715b-f197-4eed-9b3f-b9de6509333d)
 
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/15d626de-73bb-47d3-a338-0ad0328a044d)
+
  6. now try to access the dcorp-mgm device
+
  ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/efd84534-6ff7-4c0b-a404-584962a1011f)
 
 you were able to access the dcorp-mgmt device through the svcadmin user because he can execute the MSSQLsvc service in the dcrop-mgmt deivce
