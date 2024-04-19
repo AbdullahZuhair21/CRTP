@@ -2095,6 +2095,10 @@ Get-Netcomputer -UnConstrained | select samaccountname
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/92da62fa-7cae-4a99-bdae-ccdf0facf993)
 
+another way to know if the user has unconstrained delegation is by checking the useraccountcontrol after running `"Get-Domaincomputer -Unconstrained"`
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cc85c9b1-24ea-422c-a882-1ac7b5b44ce0)
+
 Two devices have unconstrained delegation feature. The first one is DC which always having UnConstained Delegation in it so we will ignore it
 
 we will focus on dcopr-appsrv. to apply the attack you must be hacked the machine and have the local admin privilege 
