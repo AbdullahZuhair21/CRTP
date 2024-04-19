@@ -2221,6 +2221,7 @@ After that, we will use the Rubeus tool, so that we request any service on the t
 1. I'm using a HRmanager user
 
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2c0e0661-d231-456c-9068-08b8fa32c630)
+
 3. Load PowerView
 ```
 Import-Module .\powerview.ps1
