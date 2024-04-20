@@ -2556,6 +2556,10 @@ winrs -r:dcorp-dc cmd /c set username
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/507f7b30-8f35-44f2-9407-e33def8929c6)
 
+7. you also can list the directory of the DC
+```
+dir \\dcorp-dc\C$
+```
 ### ADCS - ESC3
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/ff22e39b-272b-4162-b432-9b044489f1d4)
 
