@@ -2608,7 +2608,7 @@ therefore, we will execute a command that will show us which user has sysadmin p
 ```
 Invoke-SQLAuditPrivImpersonateLogin -Instance ufc-sqldev -Verbose -Debug -Exploit
 ```
-![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2689662b-8575-4e8f-8dfc-64822aea4660)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/4085fde2-3f94-41dc-9bef-097a2d544bc4)
 
 If we notice that it's mentioned, any user present in the RDPUsers group can impersonate the user dbuser, but he does not have sysadmin privileges.
 
