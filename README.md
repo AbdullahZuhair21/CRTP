@@ -2569,6 +2569,19 @@ dir \\dcorp-dc\C$
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/bbdbb2bb-2506-4ad5-99a4-97da380a991f)
 
 # MSSQL Impersonate
+### Discovery (SPN Scanning)
+```
+Get-SQLInstanceDomain
+```
+### Check Accessibility
+```
+Get-SQLConnectionTestThreaded
+Get-SQLInstanceDomain | Get-SQLConnectionTestThreaded -Verbose
+```
+### Gather Information
+```
+Get-SQLInstanceDomain | Get-SQLServerInfo -Verbose
+```
 ### Load PowerUpSQL
 ```
 Import-Module .\PowerUpSQL-master\PowerUpSQL.ps1
