@@ -245,34 +245,25 @@ Get-NetLocalGroupMember -ComputerName dcorp-dc -GroupName Administrators
 ```
 
 # Domain Enumeration - Group Policy Object Enumeration
-Enumerate the following for the dollarcorp domain:
-> 1. [ ] List all the OUs
+1. Get all the OUs
 ```
-Get-DomainOU #check the name in the output
-Get-DomainOU | select -ExpandProperty name #see only the names
+Get-DomainOU
 ```
-> 2. [ ] List all the computers in the StudentMachines OU
-```
-(Get-DomainOU -Identity StudentMachines).distinguishedname | %{Get-DomainComputer -SearchBase $_} | select name
-```
-> 3. [ ] List the GPOs
-```
-Get-DomainGPO
-```
-> 4. [ ] Enumerate GPO applied on the StudentMachines OU
-```
-Get-DomainGPO -Identity "{AB306569-220D-43FF-BO3B-83E8F4EF8081}"
-```
-Get list of GPO in current domain.
-```
-Get-DomainGPO | select displayname  #display all policies
-Get-DomainGPO -ComputerName dcorp-student1.dollarcorp.moneycorp.local  #check if any of the GPO applied on particular machine. check displayname ex. students policy is applied on the machine
-```
-List all the computer in the StudentMachines OU
+2. List all the computers in the OU
 ```
 (Get-Domain -Identity StudentMachines).distinguishedname | %{Get-DomainComputer -SearchBase $_} | select name
 ```
-Get GPO(s) which use Restricted Groups or groups.xml for interesting users
+3. List the GPOs
+```
+Get-DomainGPO
+Get-DomainGPO -ComputerName dcorp-student1.dollarcorp.moneycorp.local
+```
+4. Enumerate GPO applied on an OU
+```
+Get-DomainGPO -Identity '{objectguid}'   #objectguid u will get it form OU Enumeration
+```
+5. You may use the following
+Get GPO(s) that use Restricted Groups or groups.xml for interesting users
 ```
 Get-DomainGPOLocalGroup
 ```
@@ -280,18 +271,12 @@ Get users who are in a local group of a machine using GPO
 ```
 Get-DomainGPOComputerLocalGroupMapping -ComputerIdentity dcop-student1
 ```
-Get machines where the given user is member of a specific group
+Get machines where the given user is a member of a specific group
 ```
 Get-DomainGPOUserLocalGroupMapping -Identity student -Verbose
 ```
-Get OUs in a domain
-```
-Get-DomainOU -FullData  #list of organizational unit in the domain
-```
-Get GPO applied on an OU. Read GPOName from gplink attribute from Get-NetOU
-```
-Get-DomainGPO -Identity "{AB306569-220D-43FF-BO3B-83E8F4EF8081}"  #group policy that is applied on the OU. check displayname ex. group policy student is applied
-```
+
+
 
 # Domain Enumeration - Access Control List Enumeration  (better to use bloodhound)
 ACL is a list of Access Control Entries (ACE) - ACE corresponds to individual permission or audits. who has permission and what can be done
