@@ -380,6 +380,7 @@ Get-DomainForeignGroupMember
 
 
 # Active Directory - Local Privilege Escalation
+check video#12 and lab manual page#26
 > 1. [ ] Autorun
 > 2. [ ] AlwaysInstallElevated
 > 3. [ ] Service Registry
