@@ -1,4 +1,7 @@
 # CRTP One Week Challenge
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/34fd32af-5087-4184-984b-75e7b4ad0c44)
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d1ee2b35-3e75-4419-9adc-91827daa5223)
+
 
 ### To bypass AV in the cmd
 1. launch cmd
@@ -244,6 +247,8 @@ Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local -Recurse
 Get-NetLocalGroupMember -ComputerName dcorp-dc -GroupName Administrators
 ```
 
+
+
 # Domain Enumeration - Group Policy Object Enumeration
 1. Get all the OUs
 ```
@@ -278,138 +283,101 @@ Get-DomainGPOUserLocalGroupMapping -Identity student -Verbose
 
 
 
-# Domain Enumeration - Access Control List Enumeration  (better to use bloodhound)
-ACL is a list of Access Control Entries (ACE) - ACE corresponds to individual permission or audits. who has permission and what can be done
-- DACL - Defines the permissions trustees.
-- SACL - Logs success and failure audit messages when an object is accessed.
-> 1. [ ] ACL for the Domain Admins group
+# Domain Enumeration - Access Control List Enumeration  (better to use Bloodhound)
+1. Enumerate ACL for a particular group
 ```
-Get-DomainObjectAcl -Identity "Domain Admins" -ResolveGUIDs -Verbose #check ObjectAceType
+Get-DomainObjectAcl -Identity "Domain Admins" -ResolveGUIDs -Verbose
 ```
-> 2. [ ] Check all modify rights/permissions for the studentx
+2. check the modify rights/permissions in different Group
 ```
-Find-InterestingDomainAcl -ResolveGUIDs | ?{$_.IdentityReferenceName -match "studentx"}
+Find-InterestingDomainAcl -ResolveGUIDs   #check IdentityReferenceDomain
 ```
-> 3. [ ] Check modify rights/permissions for the studentx in RDPUsers group as user is a member of it
-```
-Find-InterestingDomainAcl -ResolveGUIDs | ?{$_.IdentityReferenceName -match "RDPUsers"}
-```
-Get the ACLs associated with the specified object (groups)
-```
-Get-DomainObjectAcl -SamAccountName student1 -ResolveGUIDs  #get a list of Aces from student1. check ObjectDN, IdentityReference, ActiveDirectoryRights
-```
-Get the ACLs associated with the specified prefix to be used for search
-```
-Get-DomainObjectAcl -ADSprefix 'CN=Administrator,CN=Users' -Verbose
-```
-We can also enumerate ACLs using ActiveDirectory module but without resolving GUIDs
-won't work in PowerView
-```
-(Get-Acl "AD:\CN=Administrator, CN=Users, DC=dollarcorp, DC=moneycorp,DC=local").Access
-```
-Get the ACLs associated with the specified LDAP path to be used for search
+3. Get the ACLs associated with the specified LDAP path to be used for search
 ```
 Get-DomainObjectAcl -SearchBase 'LDAP://CN=DomainAdmins,CN=Users,DC=dollarcorp,DC=moneycorp,DC=local' -ResolveGUIDs -Verbose
 ```
-Search for interesting ACEs
-```
-Find-InterestingDomainAcl -ResolveGUIDs
-```
-Get the ACLs associated with the specified path
-```
-Get-PathAcl -Path "\\dc.mydomain.local\sysvol" 
-```
----
+
+
 
 # Domain Enumeration - Trusts Enumeration
-
-> 1. [ ] Enumerate all domains in the moneycorp.local forest
+1. Enumerate all domains in raman.local forest
 ```
-Get-ForestDomain -Verbose #enumerate all domains in the current forest. check name
-```
-> 2. [ ] Map the trusts of the dollarcorp.moneycorp.local domain
-```
-Get-DomainTrust #check SourceName, TargetName, TrustsAttributes, and TrustDirection
-```
-> 3. [ ] Map External trusts in meneycorp.local forest
-```
-Get-ForestDomain | %{Get-DomainTrust -Domain $_.Name} | ?{$_.TrustAttributes -eq "FILTER_SIDS"} #check TrustAttributes
-``` 
-> 4. [ ] Identify external trusts of dollarcorp domain. can you enumerate trusts for a trusting forest?
-```
-Get-DomainTrust | ?{$_.TrustAttributes -eq "FILTER_SIDS"} #check TrustAttribut
-```
-> 5. [ ] Enumerate trusts for eurocop.local forest
-```
-Get-ForestDomain -Forest eurocorp.local | %{Get-DomainTrust -Domain $_.Name}
-```
-Get a list of all domain trusts for the current domain
-```
-Get-DomainTrust  #check trust relationship
-Get-DomainTrust -Domain us.dollarcorp.moneycorp.local  #check the trust for different domain
-```
-Get details about the current forest
-```
-Get-Forest  #get the details about forest. check domains, GlobalCatalogs
-Get-Forest -Forest eurocorp.local  #get the details about different forest. check domains, GlobalCatalogs
-```
-Get all domains in the current forest
-```
-Get-ForestDomain  #list of domains in the current forest
+Get-ForestDomain -Verbose
 Get-ForestDomain -Forest eurocorp.local  #list of domains in different forest
 ```
-Get all global catalogs for the current forest
+2. map all the trusts of the current domain
+```
+Get-DomainTrust   #TrustAttributes : FILTER_SIDs means external trust
+Get-DomainTrust -Domain us.dollarcorp.moneycorp.local  #different Domain
+```
+3. Enumerate the current forest
+```
+Get-Forest  #check domains, GlobalCatalogs
+Get-Forest -Forest raman.local  #get the details about different forest.
+```
+4. Get all global catalogs for the current forest
 ```
 Get-ForestGlobalCatalog  #check global catalogs of the current forest
 Get-ForestGlobalCatalog -Forest eurocorp.local  #check global catalogs of different forest
 ```
-Map trusts of a forest
+5. Map trusts of a forest
 ```
 Get-ForestTrust  #if u get nothing means there is no forest relationship trust in the current forest
 Get-ForestTrust -Forest eurocorp.local  #check the forest relationship trust for external forest 
 ```
-Map External trusts in meneycorp.local forest
+6. Map External trusts in meneycorp.local forest
 ```
 Get-ForestDomain | %{Get-DomainTrust -Domain $_.Name} | ?{$_.TrustAttributes -eq "FILTER_SIDS"}
 ```
+Note: for the FILTER_SIDs you need to have either Bidirectional or one-way trust (TrustDirection) to extract information from the forest  (check LabManual page #19)
 
----
+
 
 # User Hunting
-Find all machines on the current domain where the current user has local admin access (admin access in another machine)
+### Local Admin Access
+1. Find all machines on the current domain where the current user has local admin access
 ```
 Find-LocalAdminAccess -Verbose
 ```
-Find computers where a domain admin (or specified user/group) has sessions
+
+2. Find local admins on all machines of the domain(needs administrator privs on non-dc machines)
 ```
-powershell -ep bypass   #If u get an error module can't be loaded
-. C:\AD\Tools\Invoke-SessionHunter.ps1
-Invoke-SessionHunter
-OR
-Invoke-UserHunter
-Invoke-UserHunter -GroupName "RDPUsers"
+Invoke-EnumerateLocalAdmin -Verbose
 ```
-To confirm admin access in another local computer if yes you can run commands
+
+### Sessions
+1. Find computers where a domain admin (or specified user/group) has sessions
 ```
-. C:\AD\Tools\Find-PSRemotingLocalAdminAccess.ps1
+. .\Invoke-SessionHunter.ps1  -->  Invok-SessionHunter
+#OR
+Invoke-UsersHunter
+Invoke-UsersHunter - GroupName "RPDUsers"
+```
+
+2. To confirm admin access
+```
+. .\Find-PSRemotingLocalAdminAccess.ps1
 Find-PSRemotingLocalAdminAccess
 #OR
-Invoke-UserHunter -CheckAccess   #check if you have admin access on another computer
+Invoke-UserHunter -CheckAccess
+Invoke-UserHunter -Verbose
 ```
-Find computers where a domain admin is logged in
+
+### Logged-in
+1. Find computers where a domain admin is logged-in
 ```
-Invoke-UserHunter -Stealth  #Will only go to the high-value targets
+Invoke-UserHunter -Stealth
 ```
-Get users with privileges in other domains inside the forest
+2. Get users with privileges in other domains inside the forest
 ```
 Get-DomainForeingUser 
 ```
-Get groups with privileges in other domains inside the forest
+3. Get groups with privileges in other domains inside the forest
 ```
 Get-DomainForeignGroupMember 
 ```
 
----
+
 
 # Active Directory - Local Privilege Escalation
 > 1. [ ] Autorun
