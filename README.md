@@ -399,6 +399,7 @@ check video#12 and lab manual page#26
 > 16. [ ] Abusing GPO permissions
 > 17. [ ] Export LAPS Passwords
 > 18. [ ] Common for the course
+
 Windows Enumeration:
 - system enum
 ```
@@ -1519,11 +1520,6 @@ C:\Scripts\LAPSexport.ps1
 3. Then, run the script to verify it works correctly. If it does, you should automate this procedure by creating a Scheduled Task.
 
 # <span style="color:lightblue">Common for the course</span>
-
-## <span style="color:lightgreen">Methodology</span>
-
-## <span style="color:lightgreen">Detection</span>
-
 ## <span style="color:lightgreen">Exploitation</span>
 1. Load PowerUp.ps1 and run `"Invoke-AllChecks"`
 2. focus on the AbuseFunction
@@ -1546,8 +1542,23 @@ net localgroup Administrators
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/f26431e6-a234-48d2-a258-8256756a3031)
 
-your user will be added to the administrator group. just refresh the windows machine by logoff and login again.
+your user will be added to the administrator group. just refresh the Windows machine by logoff and login again.
 6. run `"cmd"` as administrator
+
+
+
+# Local Administrator User
+1. After privilege escalation check if the current user is a local admin on another machine
+```
+. .C:\AD\Tools\Find-PSRemotingLocalAdminAccess.ps1
+Find-PSRemotingLocalAdminAccess
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/329c2b09-0d58-4a0b-985f-687e0b5c0ff3)
+if you have admin access use winrs to connect to the machine
+```
+winrs -r:dcorp-adminsrv cmd
+```
+
 
 # BloodHound Enumeration   Need Admin Privs
 ### Start BloodHound
