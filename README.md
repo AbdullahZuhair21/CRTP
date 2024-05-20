@@ -208,52 +208,92 @@ $client = New-Object System.$class.TCPClient($IPAddress,$PORT)
 ---
 
 # Domain Enumeration - Basic
-1. Get a list of all users in the current domain
+1. Get current domain
+```
+Get-NetDomain
+```
+2. Get the object of another domain
+```
+Get-NetDomain -Domain raman.local
+```
+3. Get the domain password policy
+```
+Get-DomainPolicy
+(Get-DomainPolicy).KerberosPolicy
+```
+4. Get domain controller
+```
+Get-DomainController
+```
+5. Get domain controllers for another domain
+```
+Get-DomainController -Domain raman.local
+```
+6. Get a list of all users in the current domain
 ```
 Get-DomainUser  #list all users
+Get-DomainUser | select samaccountname, memberof  #Get the list of usernames and their groups
 Get-DomainUser -Identity student1  OR Get-DomainUser -Username student1  #select the information only for student1
 Get-DomainUser | select samaccountname,logonCount  #Get specific property of all users
 Get-DomainUser -LDAPFilter "Description=*built*" | select name,Description
 ```
-2. Get a list of computers in the current domain
+7. Get a list of computers in the current domain
 ```
 Get-DomainComputer  #get all computers
 Get-DomainComputer | select samaccountname, dnshostname
+Get-DomainComputer -Computername <computername> -FullData
 Get-DomainComputer -OperatingSystem "*Server 2016*"
 Get-DomainComputer -Ping  #check if the machine is alive or not. if firewall is on this may give u a false positive
 Get-DomainComputer -FullData  #list of all data including SID
 ```
-3. Domain Admins Group
+8. Domain Admins Group
 ```
 Get-DomainGroup | select name
 Get-DomainGroup -Name "Domain Admins"   #check particular group
 Get-DomainGroup -Domain <targetdomain> -Name "Administrators"   #check particular group for different domain
 ```
-4. Get all the members of a particular group
+9. Get all the members of a particular group
 ```
 Get-DomainGroupMember -Name "Domain Admins" -Recurse -Domain raman.local
 ```
-5. Get the group membership of a user
+10. Get the group membership of a user
 ```
-Get-DomainGroup -UserName "student1"
+Get-DomainGroup -UserName "student1" | select name
 ```
-6. Enumerate members of the Enterprise Admins group
+11. Enumerate members of the Enterprise Admins group
 ```
 Get-DomainGroupMember -Name "Enterprise Admins"
 Get-DomainGroupMember -Name "Enterprise Admins" -Domain raman.local
 ```
-7. List all the local groups on a machine (needs administrator privs on non-dc machines)
+12. List all the local groups on a machine (needs administrator privs on non-dc machines)
 ```
 Get-NetLocalGroup -computerName dcorp-dc
 Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local  #membership of the groups on the domain controller
 ```
-8. Get members of all the local groups on a machine (needs administrator privs on non-dc machines)
+13. Get members of all the local groups on a machine (needs administrator privs on non-dc machines)
 ```
 Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local -Recurse
 ```
-9. Get members of the local group "Administrators" on a machine (needs administrator privs on non-dc machines)
+14. Get members of the local group "Administrators" on a machine (needs administrator privs on non-dc machines)
 ```
 Get-NetLocalGroupMember -ComputerName dcorp-dc -GroupName Administrators
+```
+
+
+
+# Shares Enumeration
+1. Find Shared on hosts in the current domain
+```
+Invoke-ShareFinder -Verbose
+Invoke-ShareFinder -ExcludeStandard -ExcludePrint -ExcludeIPC
+```
+2. Find sensitive files on computers in the domain
+```
+Invoke-FileFinder -Verbose
+```
+3. Get all fileservers of the domain
+```
+Get-NetFileServer
 ```
 
 
@@ -262,6 +302,7 @@ Get-NetLocalGroupMember -ComputerName dcorp-dc -GroupName Administrators
 1. Get all the OUs
 ```
 Get-DomainOU
+Get-DomainOU -select displayname  # you can view the GPOs name but not the settings
 ```
 2. List all the computers in the OU
 ```
